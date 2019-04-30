@@ -223,6 +223,7 @@ class _Dihedral_angle_windows(tk.Toplevel):
         self.destroy()
 
 
+
 class _DDD_windows(tk.Toplevel):
 
     '''matplotlib_3d图像容器类'''
@@ -234,7 +235,7 @@ class _DDD_windows(tk.Toplevel):
         self.parent = parent
 
         plot=dp.DDD_plot()
-        self.parent.fio.Gaussian_file('Gaussian_inp\\CHCl3.gjf')#testing
+        self.parent.fio.Gaussian_file('Gaussian_inp\\75.gjf')#testing
 
         canvas = FigureCanvasTkAgg(plot.fig, self)
         canvas.draw()
