@@ -20,10 +20,19 @@ class Molecule():
     def modify_bonds(self):
         return self.__bonds
     
+    def get_bond_length(self, a, b):
+        pass
+    
+    def get_bond_angle(self, a, o, b):
+        pass
+
+    def get_dihedral_angle(self, a, b, c, d):
+        pass
+
     def modify_bond_length(self, a, b, l):
         pass
     
-    def modify_angle_length(self, o, a, b, angle):
+    def modify_bond_angle(self, a, o, b, angle):
         pass
     
     def modify_dihedral_angle(self, a, b, c, d, angle):

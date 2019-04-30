@@ -76,8 +76,8 @@ class _Main_menu:
         editmenu.add_command(label="二面角", command=self.parent.open_dihedral_angle_windows)
 
         #计算
-        editmenu = tk.Menu(self.menubar, tearoff=0)
-        editmenu.add_command(label="计算MM", command=self.call_3d)
+        compmenu = tk.Menu(self.menubar, tearoff=0)
+        compmenu.add_command(label="用MM优化分子构象", command=self.call_3d)
 
         #帮助
         helpmenu = tk.Menu(self.menubar, tearoff=0)
@@ -86,6 +86,7 @@ class _Main_menu:
         
         self.menubar.add_cascade(label="文件", menu=filemenu)
         self.menubar.add_cascade(label="页面", menu=editmenu)
+        self.menubar.add_cascade(label="计算", menu=compmenu)
         self.menubar.add_cascade(label="帮助", menu=helpmenu)
 
     def file_open(self):
@@ -114,40 +115,112 @@ class _Main_menu:
 class _Bond_length_windows(tk.Toplevel):
 
     def __init__(self, parent):
-        super().__init__()
+        super().__init__(parent)
+        self.parent = parent
         self.wm_title("键长")
-        self.geometry("300x200")
         self.resizable(width=False, height=False)
-        self.initial_windows()
+        
+        self.a = tk.IntVar()
+        self.b = tk.IntVar()
+        self.l = tk.IntVar()
 
-    def initial_windows(self):
-        pass
+        f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
+        l1 = ttk.Label(f1, text='第一个原子的序号：'); l1.grid(row=0, column=0)
+        l2 = ttk.Label(f1, text='第二个原子的序号：'); l2.grid(row=1, column=0)
+        l3 = ttk.Label(f1, text='键长：'); l3.grid(row=2, column=0)
+
+        e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
+        e2 = ttk.Entry(f1, textvariable=self.b); e2.grid(row=1, column=1)
+        e3 = ttk.Entry(f1, textvariable=self.l); e3.grid(row=2, column=1)
+
+        f2 = ttk.Frame(self, padding=5); f2.grid(row=1, column=0)
+        b1 = ttk.Button(f2, text='确定', command=self.__commit); b1.grid(row=3, column=0)
+        b2 = ttk.Button(f2, text='取消', command=self.__quit); b2.grid(row=3, column=1)
+
+    def __commit(self):
+        self.parent.Molecule.modify_bond_length(self.a.get(), self.b.get(), self.l.get())
+        self.destroy()
+    
+    def __quit(self):
+        self.destroy()
 
 class _Bond_angle_windows(tk.Toplevel):
 
     def __init__(self, parent):
-        super().__init__()
+        super().__init__(parent)
+        self.parent = parent
         self.wm_title("键角")
-        self.geometry("300x200")
         self.resizable(width=False, height=False)
-        self.initial_windows()
 
-    def initial_windows(self):
-        pass
+        self.o = tk.IntVar()
+        self.a = tk.IntVar()
+        self.b = tk.IntVar()
+        self.angle = tk.IntVar()
+
+        f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
+        l1 = ttk.Label(f1, text='第一个原子的序号：'); l1.grid(row=0, column=0)
+        l2 = ttk.Label(f1, text='顶点原子的序号：'); l2.grid(row=1, column=0)
+        l3 = ttk.Label(f1, text='第三个原子的序号：'); l3.grid(row=2, column=0)
+        l4 = ttk.Label(f1, text='键角：'); l4.grid(row=3, column=0)
+
+        e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
+        e2 = ttk.Entry(f1, textvariable=self.o); e2.grid(row=1, column=1)
+        e3 = ttk.Entry(f1, textvariable=self.b); e3.grid(row=2, column=1)
+        e4 = ttk.Entry(f1, textvariable=self.angle); e4.grid(row=3, column=1)
+
+        f2 = ttk.Frame(self, padding=5); f2.grid(row=1, column=0)
+
+        f3 = ttk.Frame(self, padding=5); f3.grid(row=2, column=0)
+        b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=4, column=0)
+        b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=4, column=1)
+
+    def __commit(self):
+        self.parent.Molecule.modify_bond_angle(self.a.get(), self.o.get(), self.b.get(), self.angle.get())
+        self.destroy()
+    
+    def __quit(self):
+        self.destroy()
 
 
 class _Dihedral_angle_windows(tk.Toplevel):
 
     def __init__(self, parent):
-        super().__init__()
+        super().__init__(parent)
+        self.parent = parent
         self.wm_title("二面角")
-        self.geometry("300x200")
         self.resizable(width=False, height=False)
-        self.initial_windows()
 
-    def initial_windows(self):
-        pass
-        
+        self.a = tk.IntVar()
+        self.b = tk.IntVar()
+        self.c = tk.IntVar()
+        self.d = tk.IntVar()
+        self.angle = tk.IntVar()
+
+        f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
+        l1 = ttk.Label(self, text='第一个原子的序号：'); l1.grid(row=0, column=0)
+        l2 = ttk.Label(self, text='第二个原子的序号：'); l2.grid(row=1, column=0)
+        l3 = ttk.Label(self, text='第三个原子的序号：'); l3.grid(row=2, column=0)
+        l4 = ttk.Label(self, text='第四个原子的序号：'); l4.grid(row=3, column=0)
+        l5 = ttk.Label(self, text='二面角：'); l5.grid(row=4, column=0)
+
+        e1 = ttk.Entry(self, textvariable=self.a); e1.grid(row=0, column=1)
+        e2 = ttk.Entry(self, textvariable=self.b); e2.grid(row=1, column=1)
+        e3 = ttk.Entry(self, textvariable=self.c); e3.grid(row=2, column=1)
+        e4 = ttk.Entry(self, textvariable=self.d); e4.grid(row=3, column=1)
+        e5 = ttk.Entry(self, textvariable=self.angle); e5.grid(row=4, column=1)
+
+        f2 = ttk.Frame(self, padding=5); f2.grid(row=1, column=0)
+
+        f3 = ttk.Frame(self, padding=5); f3.grid(row=2, column=0)
+        b1 = ttk.Button(self, text='确定', command=self.__commit); b1.grid(row=5, column=0)
+        b2 = ttk.Button(self, text='取消', command=self.__quit); b2.grid(row=5, column=1)
+
+    def __commit(self):
+        self.parent.Molecule.modify_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get(), self.angle.get())
+        self.destroy()
+    
+    def __quit(self):
+        self.destroy()
 
 
 class _DDD_windows(tk.Toplevel):
@@ -172,7 +245,7 @@ class _DDD_windows(tk.Toplevel):
         toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=False)
         canvas_tkw.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        plot.init(self.parent.fio.atoms, self.parent.fio.bonding)
+        plot.init(self.parent.Molecule)
         # https://blog.csdn.net/qq_28485501/article/details/85329343 <- refer
 
 
@@ -183,7 +256,12 @@ class _DD_frame(tk.Frame):
 
     def __init__(self, parent):
         super().__init__(parent)
-        
+    
+    def height_light_atom(self, a):
+        pass
+    
+    def height_light_bond(self, a, b):
+        pass
 
 
 

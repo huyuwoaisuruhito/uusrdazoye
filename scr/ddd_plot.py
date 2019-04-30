@@ -18,11 +18,13 @@ class DDD_plot():
     def __init__(self):
         self.fig = plt.figure(facecolor = 'mediumpurple')
     
-    def init(self, atoms, bonding):
+    def init(self, molecule):
+        atoms = molecule.get_atoms()
+        bonds = molecule.get_bonds()
         self.ax = Axes3D(self.fig)
         self.ax.set_axis_off()
         self.plot_atoms(atoms)
-        self.plot_bonds(atoms, bonding)
+        self.plot_bonds(atoms, bonds)
     
     def plot_atoms(self, atoms):
         for atom in atoms:
