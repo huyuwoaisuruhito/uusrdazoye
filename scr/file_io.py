@@ -6,9 +6,10 @@ PT = {
 
 class File_IO():
 
-    def __init__(self, root):
-        self.atoms = []
-        self.bonding = []
+    '''文件IO'''
+
+    def __init__(self, root, handle):
+        self.__M = handle
         self.root = root
 
     def Gaussian_file(self, path):
@@ -24,18 +25,13 @@ class File_IO():
                 continue
             inp_f[i].append(l)
         
-        
+        atoms = self.__M.modify_atoms()
         for l in inp_f[2][1:]:
-            self.atoms.append(l[0:1] + [float(ll) for ll in l[1:]])
+            atoms.append(l[0:1] + [float(ll) for ll in l[1:]])
 
+        bonds = self.__M.modify_bonds()
         for l in inp_f[3]:
             link = []
             for j in range((len(l)-1)//2):
                 link.append([ int(l[2*j+1])-1, float(l[2*j+2]) ])
-            self.bonding.append(link)
-
-
-
-if __name__ == "__main__":
-    fio = File_IO(None)
-    fio.Gaussian_file('a')
+            bonds.append(link)
