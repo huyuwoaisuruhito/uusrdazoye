@@ -125,8 +125,8 @@ class _Bond_length_windows(tk.Toplevel):
         self.l = tk.IntVar()
 
         f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
-        l1 = ttk.Label(f1, text='第一个原子的序号：'); l1.grid(row=0, column=0)
-        l2 = ttk.Label(f1, text='第二个原子的序号：'); l2.grid(row=1, column=0)
+        l1 = ttk.Label(f1, text='（不动的）第一个原子的序号：'); l1.grid(row=0, column=0)
+        l2 = ttk.Label(f1, text='（可调的）第二个原子的序号：'); l2.grid(row=1, column=0)
         l3 = ttk.Label(f1, text='键长：'); l3.grid(row=2, column=0)
 
         e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
@@ -158,9 +158,9 @@ class _Bond_angle_windows(tk.Toplevel):
         self.angle = tk.IntVar()
 
         f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
-        l1 = ttk.Label(f1, text='第一个原子的序号：'); l1.grid(row=0, column=0)
-        l2 = ttk.Label(f1, text='顶点原子的序号：'); l2.grid(row=1, column=0)
-        l3 = ttk.Label(f1, text='第三个原子的序号：'); l3.grid(row=2, column=0)
+        l1 = ttk.Label(f1, text='（不动的）第一个原子的序号：'); l1.grid(row=0, column=0)
+        l2 = ttk.Label(f1, text='（不动的）顶点原子的序号：'); l2.grid(row=1, column=0)
+        l3 = ttk.Label(f1, text='（可调的）第三个原子的序号：'); l3.grid(row=2, column=0)
         l4 = ttk.Label(f1, text='键角：'); l4.grid(row=3, column=0)
 
         e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
@@ -197,10 +197,10 @@ class _Dihedral_angle_windows(tk.Toplevel):
         self.angle = tk.IntVar()
 
         f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
-        l1 = ttk.Label(self, text='第一个原子的序号：'); l1.grid(row=0, column=0)
-        l2 = ttk.Label(self, text='第二个原子的序号：'); l2.grid(row=1, column=0)
-        l3 = ttk.Label(self, text='第三个原子的序号：'); l3.grid(row=2, column=0)
-        l4 = ttk.Label(self, text='第四个原子的序号：'); l4.grid(row=3, column=0)
+        l1 = ttk.Label(self, text='（不动的）第一个原子的序号：'); l1.grid(row=0, column=0)
+        l2 = ttk.Label(self, text='（不动的）第二个原子的序号：'); l2.grid(row=1, column=0)
+        l3 = ttk.Label(self, text='（不动的）第三个原子的序号：'); l3.grid(row=2, column=0)
+        l4 = ttk.Label(self, text='（可调的）第四个原子的序号：'); l4.grid(row=3, column=0)
         l5 = ttk.Label(self, text='二面角：'); l5.grid(row=4, column=0)
 
         e1 = ttk.Entry(self, textvariable=self.a); e1.grid(row=0, column=1)

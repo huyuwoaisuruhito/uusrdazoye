@@ -1,4 +1,5 @@
 import copy
+import numpy as np
 
 class Molecule():
 
@@ -21,13 +22,20 @@ class Molecule():
         return self.__bonds
     
     def get_bond_length(self, a, b):
-        pass
+        return np.sqrt(sum(map(lambda a, b:(a-b)**2, zip(self.__atoms[a][1:], self.__atoms[b][1:]))))
     
     def get_bond_angle(self, a, o, b):
-        pass
+        OA = np.array(self.__atoms[a][1:]) - np.array(self.__atoms[o][1:])
+        OB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[o][1:])
+        return np.arccos( OA.dot(OB)/np.sqrt(OA.dot(OA)) * np.sqrt(OB.dot(OB)) )
 
     def get_dihedral_angle(self, a, b, c, d):
-        pass
+        AB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[a][1:])
+        BC = np.array(self.__atoms[c][1:]) - np.array(self.__atoms[b][1:])
+        CD = np.array(self.__atoms[d][1:]) - np.array(self.__atoms[c][1:])
+        N_ABC = np.cross(AB, BC)
+        N_BCD = np.cross(BC, CD)
+        return np.arccos( N_ABC.dot(N_BCD)/np.sqrt(N_ABC.dot(N_ABC)) * np.sqrt(N_BCD.dot(N_BCD)) )
 
     def modify_bond_length(self, a, b, l):
         pass
