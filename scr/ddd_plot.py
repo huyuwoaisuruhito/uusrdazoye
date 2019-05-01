@@ -19,10 +19,14 @@ class DDD_plot():
         self.fig = plt.figure(facecolor = 'mediumpurple')
     
     def init(self, molecule):
+        self.ax = Axes3D(self.fig, facecolor=(0.5, 0.5, 0.797))
+        self.plot(molecule)
+        plt.ion()
+    
+    def plot(self, molecule):
+        self.ax.set_axis_off()
         atoms = molecule.get_atoms()
         bonds = molecule.get_bonds()
-        self.ax = Axes3D(self.fig, facecolor=(0.5, 0.5, 0.797))
-        self.ax.set_axis_off()
 
         self.plot_atoms(atoms)
 
@@ -32,6 +36,13 @@ class DDD_plot():
         self.ax.set_zlim3d(-_max, _max)
 
         self.plot_bonds(atoms, bonds, 5/_max)
+    
+    def re_plot(self, molecule):
+        e = self.ax.elev
+        a = self.ax.azim
+        d = self.ax.dist
+        self.ax.clear()
+        self.plot(molecule)
     
     def plot_atoms(self, atoms):
         for atom in atoms:
@@ -52,6 +63,8 @@ class DDD_plot():
             if bonds != []:
                 delta = [1, 0, 0]                
                 for j, bl in bonds:
+                    if j<i-1:
+                        continue
                     B = atoms[j]
 
                     if bl == 1:

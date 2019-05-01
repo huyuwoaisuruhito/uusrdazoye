@@ -12,7 +12,7 @@ class File_IO():
         self.__M = handle
         self.root = root
 
-    def Gaussian_file(self, path):
+    def input_gaussian_file(self, path):
         inp = open(path, 'r')
 
         i = 0
@@ -25,13 +25,16 @@ class File_IO():
                 continue
             inp_f[i].append(l)
         
+        self.__M.set_charge(inp_f[2][0][0])
+        self.__M.set_multiplicity(inp_f[2][0][0])
         atoms = self.__M.modify_atoms()
         for l in inp_f[2][1:]:
             atoms.append(l[0:1] + [float(ll) for ll in l[1:]])
 
         bonds = self.__M.modify_bonds()
-        for l in inp_f[3]:
-            link = []
+        [bonds.append([]) for i in range(len(atoms))]
+        for i in range(len(inp_f[3])):
+            l = inp_f[3][i]
             for j in range((len(l)-1)//2):
-                link.append([ int(l[2*j+1])-1, float(l[2*j+2]) ])
-            bonds.append(link)
+                bonds[i].append([ int(l[2*j+1]) - 1, float(l[2*j+2]) ])
+                bonds[int(l[2*j+1])-1].append([ i, float(l[2*j+2]) ])
