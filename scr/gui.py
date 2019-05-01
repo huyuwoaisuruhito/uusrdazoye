@@ -6,9 +6,9 @@ from tkinter import messagebox
 from tkinter.scrolledtext import ScrolledText
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
-import file_io as fio
-import ddd_plot as dp
-import molecule as mol
+import scr.file_io as fio
+import scr.ddd_plot as dp
+import scr.molecule as mol
 
 class Main_windows(tk.Tk):
 
@@ -31,6 +31,8 @@ class Main_windows(tk.Tk):
         self.fio = fio.File_IO(self, self.Molecule)
 
         self.open_3d_windows()
+
+        tk.mainloop()
 
     def open_3d_windows(self):
         self.__ddd = _DDD_windows(self)
@@ -253,7 +255,7 @@ class _DDD_windows(tk.Toplevel):
 
 class _DD_frame(tk.Frame):
 
-    '''2D绘图'''
+    '''2D绘图类'''
 
     def __init__(self, parent):
         super().__init__(parent)
