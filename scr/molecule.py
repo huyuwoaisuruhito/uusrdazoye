@@ -47,20 +47,40 @@ class Molecule():
         return self.__bonds
 
     def get_bond_length(self, a, b):
+        if a == b:
+            return
         return np.sqrt(sum(map(lambda A, B:(A-B)**2, self.__atoms[a][1:], self.__atoms[b][1:])))
 
     def get_bond_angle(self, a, o, b):
+        if len(set([a, o, b]))!=3:
+            return
         OA = np.array(self.__atoms[a][1:]) - np.array(self.__atoms[o][1:])
         OB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[o][1:])
-        return np.arccos( OA.dot(OB)/(np.sqrt(OA.dot(OA)) * np.sqrt(OB.dot(OB))) )
+        ANGLE = np.arccos( OA.dot(OB)/(np.sqrt(OA.dot(OA)) * np.sqrt(OB.dot(OB))) )
+        if np.isnan(ANGLE):
+            if ANGLE<0:
+                return -np.pi
+            else:
+                return np.pi
+        else:
+            return ANGLE
 
     def get_dihedral_angle(self, a, b, c, d):
+        if len(set([a, b, c, d]))!=4:
+            return
         AB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[a][1:])
         BC = np.array(self.__atoms[c][1:]) - np.array(self.__atoms[b][1:])
         CD = np.array(self.__atoms[d][1:]) - np.array(self.__atoms[c][1:])
         N_ABC = np.cross(AB, BC)
         N_BCD = np.cross(BC, CD)
-        return np.arccos( N_ABC.dot(N_BCD)/(np.sqrt(N_ABC.dot(N_ABC)) * np.sqrt(N_BCD.dot(N_BCD))) )
+        ANGLE = np.arccos( N_ABC.dot(N_BCD)/(np.sqrt(N_ABC.dot(N_ABC)) * np.sqrt(N_BCD.dot(N_BCD))) )
+        if np.isnan(ANGLE):
+            if ANGLE<0:
+                return -np.pi
+            else:
+                return np.pi
+        else:
+            return ANGLE
 
     def modify_bond_length(self, a, b, l):
         if a == b:
@@ -113,6 +133,17 @@ class Molecule():
 
     def set_O(self, x, y, z):
         self.__atoms = [ [atom[0], atom[1]+x, atom[2]+y, atom[3]+z] for atom in self.__atoms ]
+
+    def get_closest_atom(self, coord):
+        a_min = 0
+        l_min = 100
+        for i, atom in enumerate(self.__atoms):
+            l = np.sqrt(sum(map(lambda A, B:(A-B)**2, atom[1:], coord)))
+            if l<l_min:
+                l_min = l
+                a_min = i
+        print(l_min)
+        return a_min
 
     def add_atom(self, a):
         pass

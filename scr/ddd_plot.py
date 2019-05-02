@@ -7,7 +7,7 @@ F_RADII = {
     'H': 0.1, 'B': 0.15, 'C': 0.2, 'N': 0.2, 'O': 0.2, 'F': 0.2, 'Si': 0.3, 'P': 0.3, 'S': 0.3, 'Cl': 0.3,
 }
 F_COLOR = {
-    'Select':'aqua', 'H': 'whitesmoke', 'B': 0.15, 'C': 'dimgray', 'N': 'blue', 'O': 'red', 'F': 'greenyellow', 'Si': 0.3, 'P': 'magenta', 'S': 'gold', 'Cl': 'limegreen',
+    'H': 'whitesmoke', 'B': 0.15, 'C': 'dimgray', 'N': 'blue', 'O': 'red', 'F': 'greenyellow', 'Si': 0.3, 'P': 'magenta', 'S': 'gold', 'Cl': 'limegreen',
 }
 
 
@@ -17,9 +17,9 @@ class DDD_plot():
 
     def __init__(self):
         self.fig = plt.figure(facecolor = 'mediumpurple')
+        self.__selectable = []
     
     def init(self, molecule):
-        self.cid = self.fig.canvas.mpl_connect('button_press_event', self.select)
         self.ax = Axes3D(self.fig, facecolor=(0.5, 0.5, 0.797))
         self.plot(molecule)
         plt.ion()
@@ -63,15 +63,34 @@ class DDD_plot():
         self.ax.dist -= e.delta/240
         plt.draw()
 
-    def select(self, e):
-        s = self.ax.format_coord(e.xdata, e.ydata).replace(',', '').split()
-        coord = list(map(float, [ss[2:] for ss in s]))
-        print(coord)
+    def heigh_light_atom(self, a):
+        if isinstance(a, int):
+            ind = a
+            artist = self.__selectable[a]
+        else:
+            artist = a
+            ind = [s[0] for s in self.__selectable].index(artist)
+        if not self.__selectable[ind][2]:
+            artist.set_facecolors('aqua')
+            self.__selectable[ind][2] = True
+            return ind
+        else:
+            self.clear_high_light()
+            return -1
+
+    def clear_high_light(self):
+        for i, (artist, color, flag) in enumerate(self.__selectable):
+            if flag:
+                artist.set_facecolors(color)
+                self.__selectable[i][2] =  False
+        return -1
 
     def plot_atoms(self, atoms):
+        __selectable = []
         for i, atom in enumerate(atoms):
             r = F_RADII[atom[0]]
             c = F_COLOR[atom[0]]
+            f = False
 
             u = np.linspace(0, 2 * np.pi, 10)
             v = np.linspace(0, np.pi, 10)
@@ -79,8 +98,12 @@ class DDD_plot():
             _y = r * np.outer(np.sin(u), np.sin(v)) + atom[2]
             _z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + atom[3]
 
-            self.ax.plot_surface(_x, _y, _z, color=c, alpha=0.5)
-            self.ax.text(atom[1], atom[2], atom[3], '[%d]' %i, fontsize='x-large', fontweight='bold')
+            if self.__selectable != [] and self.__selectable[i][2]:
+                c = 'aqua'
+                f = True
+            __selectable.append([self.ax.plot_surface(_x, _y, _z, color=c, alpha=0.5, picker=1), c, f])
+            self.ax.text(atom[1], atom[2], atom[3], '[%d]' %i, fontsize='large')
+        self.__selectable = __selectable
     
     def plot_bonds(self, atoms, bonding, l):
         for i, bonds in enumerate(bonding):

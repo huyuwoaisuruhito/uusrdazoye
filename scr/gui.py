@@ -43,17 +43,35 @@ class Main_windows(tk.Tk):
         self.ddd = _DDD_windows(self)
     
     def open_bond_length_windows(self):
-        _Bond_length_windows(self)
+        if '_blw' in self.__dict__:
+            self._blw.destroy()
+        self._blw = _Bond_length_windows(self)
     
     def open_bond_angle_windows(self):
-        _Bond_angle_windows(self)
+        if '_baw' in self.__dict__:
+            self._baw.destroy()
+        self._baw = _Bond_angle_windows(self)
     
     def open_dihedral_angle_windows(self):
-        _Dihedral_angle_windows(self)
+        if '_daw' in self.__dict__:
+            self._daw.destroy()
+        self._daw = _Dihedral_angle_windows(self)
+    
+    def select(self, a):
+        if '_blw' in self.__dict__:
+            self._blw.select(a)
+        if '_baw' in self.__dict__:
+            self._baw.select(a)
+        if '_daw' in self.__dict__:
+            self._daw.select(a)
 
-    def massage(self, t, w):
-        messagebox.showinfo(t, w)
-
+    def clear_selection(self):
+        if '_blw' in self.__dict__:
+            self._blw.clear_selection()
+        if '_baw' in self.__dict__:
+            self._baw.clear_selection()
+        if '_daw' in self.__dict__:
+            self._daw.clear_selection()
 
 
 class _Main_menu:
@@ -129,6 +147,7 @@ class _Bond_length_windows(tk.Toplevel):
         self.wm_title("键长")
         self.resizable(width=False, height=False)
         self.Molecule = self.parent.Molecule.copy()
+        self.__select = []
         
         self.a = tk.IntVar()
         self.b = tk.IntVar()
@@ -152,11 +171,16 @@ class _Bond_length_windows(tk.Toplevel):
         b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=3, column=0)
         b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=3, column=1)
 
+    def __change_scale(self, event):
+        if self.l.get() != event:
+            self.l.set(event)
+
     def __change_text(self):
         try:
-            self.Molecule.modify_bond_length(self.a.get(), self.b.get(), self.l.get())
-            self.parent.ddd.re_plot(self.Molecule)
-            self.s1.set(self.l.get())
+            if self.s1.get() != self.l.get():
+                self.s1.set(self.l.get())
+                self.Molecule.modify_bond_length(self.a.get(), self.b.get(), self.l.get())
+                self.parent.ddd.re_plot(self.Molecule)
         except RuntimeWarning:
             global Flag
             if Flag:
@@ -167,13 +191,10 @@ class _Bond_length_windows(tk.Toplevel):
                     Flag = True
                 self.after(50, ___a())
 
-    def __change_scale(self, event):
-        self.l.set(str(event))
-
     def __commit(self):
         try:
-            self.parent.Molecule.modify_bond_length(self.a.get(), self.b.get(), float(self.l.get()))
-            self.parent.ddd.re_plot(self.parent.Molecule)
+                self.parent.Molecule.modify_bond_length(self.a.get(), self.b.get(), float(self.l.get()))
+                self.parent.ddd.re_plot(self.parent.Molecule)
         except RuntimeWarning:
             global Flag
             if Flag:
@@ -186,8 +207,32 @@ class _Bond_length_windows(tk.Toplevel):
         self.destroy()
     
     def __quit(self):
+        self.parent.ddd.plot.clear_high_light()
         self.parent.ddd.re_plot(self.parent.Molecule)
         self.destroy()
+        del self.parent._blw
+    
+    def __set_init(self):
+        self.l.set(self.parent.Molecule.get_bond_length(self.a.get(), self.b.get()))
+        self.s1.set(self.l.get())
+    
+    def select(self, i):
+        self.__select.append(i)
+        if len(self.__select) == 1:
+            self.a.set(i)
+        elif len(self.__select) == 2:
+            self.b.set(i)
+            self.__set_init()
+        elif len(self.__select) >= 2:
+            self.a.set(self.__select[-2])
+            self.b.set(self.__select[-1])
+            self.__set_init()
+    
+    def clear_selection(self):
+        self.__select = []
+        self.a.set(0)
+        self.b.set(0)
+        self.l.set(0)
 
 class _Bond_angle_windows(tk.Toplevel):
 
@@ -197,6 +242,7 @@ class _Bond_angle_windows(tk.Toplevel):
         self.wm_title("键角")
         self.resizable(width=False, height=False)
         self.Molecule = self.parent.Molecule.copy()
+        self.__select = []
 
         self.o = tk.IntVar()
         self.a = tk.IntVar()
@@ -224,13 +270,15 @@ class _Bond_angle_windows(tk.Toplevel):
         b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=4, column=1)
 
     def __change_scale(self, event):
-        self.angle.set(str(event))
+        if self.angle.get() != event:
+            self.angle.set(event)
 
     def __change_text(self):
         try:
-            self.Molecule.modify_bond_angle(self.a.get(), self.o.get(), self.b.get(), self.angle.get()/180*np.pi)
-            self.parent.ddd.re_plot(self.Molecule)
-            self.s1.set(self.angle.get())
+            if self.s1.get() != self.angle.get():
+                self.s1.set(self.angle.get())
+                self.Molecule.modify_bond_angle(self.a.get(), self.o.get(), self.b.get(), self.angle.get()/180*np.pi)
+                self.parent.ddd.re_plot(self.Molecule)  
         except RuntimeWarning:
             global Flag
             if Flag:
@@ -257,9 +305,37 @@ class _Bond_angle_windows(tk.Toplevel):
                 self.after(50, ___a())
     
     def __quit(self):
-        self.destroy()
+        self.parent.ddd.plot.clear_high_light()
         self.parent.ddd.re_plot(self.parent.Molecule)
-        del self
+        self.destroy()
+        del self.parent._baw
+
+    def __set_init(self):
+        angle = self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())/np.pi*180
+        self.angle.set(self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())/np.pi*180)
+        self.s1.set(self.angle.get())
+
+    def select(self, i):
+        self.__select.append(i)
+        if len(self.__select) == 1:
+            self.a.set(i)
+        elif len(self.__select) == 2:
+            self.o.set(i)
+        elif len(self.__select) == 3:
+            self.b.set(i)
+            self.__set_init()
+        elif len(self.__select) >= 3:
+            self.a.set(self.__select[-3])
+            self.o.set(self.__select[-2])
+            self.b.set(self.__select[-1])
+            self.__set_init()
+    
+    def clear_selection(self):
+        self.__select = []
+        self.a.set(0)
+        self.o.set(0)
+        self.b.set(0)
+        self.angle.set(0)
 
 
 class _Dihedral_angle_windows(tk.Toplevel):
@@ -270,6 +346,7 @@ class _Dihedral_angle_windows(tk.Toplevel):
         self.wm_title("二面角")
         self.resizable(width=False, height=False)
         self.Molecule = self.parent.Molecule.copy()
+        self.__select = []
 
         self.a = tk.IntVar()
         self.b = tk.IntVar()
@@ -300,13 +377,15 @@ class _Dihedral_angle_windows(tk.Toplevel):
         b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=5, column=1)
 
     def __change_scale(self, event):
-        self.angle.set(str(event))
+        if self.angle.get() != event:
+            self.angle.set(event)
 
     def __change_text(self):
         try:
-            self.Molecule.modify_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get(), self.angle.get()/180*np.pi)
-            self.parent.ddd.re_plot(self.Molecule)
-            self.s1.set(float(self.angle.get()))
+            if self.s1.get() != self.angle.get():
+                self.s1.set(self.angle.get())
+                self.Molecule.modify_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get(), self.angle.get()/180*np.pi)
+                self.parent.ddd.re_plot(self.Molecule)
         except RuntimeWarning:
             global Flag
             if Flag:
@@ -333,8 +412,40 @@ class _Dihedral_angle_windows(tk.Toplevel):
                 self.after(50, ___a())
     
     def __quit(self):
+        self.parent.ddd.plot.clear_high_light()
         self.parent.ddd.re_plot(self.parent.Molecule)
         self.destroy()
+        del self.parent._daw
+
+    def __set_init(self):
+        self.angle.set(self.parent.Molecule.get_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get())/np.pi*180)
+        self.s1.set(self.angle.get())
+
+    def select(self, i):
+        self.__select.append(i)
+        if len(self.__select) == 1:
+            self.a.set(i)
+        elif len(self.__select) == 2:
+            self.b.set(i)
+        elif len(self.__select) == 3:
+            self.c.set(i)
+        elif len(self.__select) == 4:
+            self.d.set(i)
+            self.__set_init()
+        elif len(self.__select) >= 4:
+            self.a.set(self.__select[-4])
+            self.b.set(self.__select[-3])
+            self.c.set(self.__select[-2])
+            self.d.set(self.__select[-1])
+            self.__set_init()
+    
+    def clear_selection(self):
+        self.__select = []
+        self.a.set(0)
+        self.b.set(0)
+        self.c.set(0)
+        self.d.set(0)
+        self.angle.set(0)
 
 
 
@@ -368,8 +479,23 @@ class _DDD_windows(tk.Toplevel):
         self.bind('<Key-Left>', self.plot.change_view_pos)
         self.bind('<Key-Right>', self.plot.change_view_pos)
         self.bind('<MouseWheel>', self.plot.change_view_dist)
-        #self.bind('<ButtonRelease-1>', self.plot.select)
+
+        self.plot.fig.canvas.mpl_connect('pick_event', self.__pick)
+        self.plot.fig.canvas.mpl_connect('button_release_event', self.__button_release)
+
+    def __pick(self, e):
+        if e.mouseevent.button == 1:
+            a = self.plot.heigh_light_atom(e.artist)
+            if a>=0:
+                self.parent.select(a)
+            else:
+                self.parent.clear_selection()
     
+    def __button_release(self, e):
+        if e.button == 3:
+            self.plot.clear_high_light()
+            self.parent.clear_selection()
+
     def re_plot(self, molecule):
         self.plot.re_plot(molecule)
 
