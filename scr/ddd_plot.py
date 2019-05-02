@@ -46,6 +46,7 @@ class DDD_plot():
     def re_plot(self, molecule):
         self.ax.clear()
         self.plot(molecule)
+        plt.draw()
     
     def change_view_pos(self, e):
         D = 5
@@ -108,9 +109,9 @@ class DDD_plot():
     def plot_bonds(self, atoms, bonding, l):
         for i, bonds in enumerate(bonding):
             A = atoms[i]
-            if bonds != []:
+            if bonds != {}:
                 delta = [1, 0, 0]                
-                for j, bl in bonds:
+                for j, bl in bonds.items():
                     if j<i-1: continue
                     B = atoms[j]
                     c_B = F_COLOR[B[0]]
@@ -133,7 +134,7 @@ class DDD_plot():
                                 A, B = B, A
                                 bonds = bonding[j]
                             n1 = np.array([A[1]-B[1], A[2]-B[2], A[3]-B[3]])
-                            for j, _bl in bonds:
+                            for j, _bl in bonds.items():
                                 if atoms[j] != B:
                                     C = atoms[j]
                                     n2 = np.array([A[1]-C[1], A[2]-C[2], A[3]-C[3]])

@@ -17,7 +17,7 @@ class Molecule():
         self.__atoms = []
         self.__bonds = []
 
-        self.__N_A = {}
+        self.__N_AOB = {}
 
     def copy(self):
         return copy.deepcopy(self)
@@ -48,12 +48,12 @@ class Molecule():
 
     def get_bond_length(self, a, b):
         if a == b:
-            return
+            return 0
         return np.sqrt(sum(map(lambda A, B:(A-B)**2, self.__atoms[a][1:], self.__atoms[b][1:])))
 
     def get_bond_angle(self, a, o, b):
         if len(set([a, o, b]))!=3:
-            return
+            return 0
         OA = np.array(self.__atoms[a][1:]) - np.array(self.__atoms[o][1:])
         OB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[o][1:])
         ANGLE = np.arccos( OA.dot(OB)/(np.sqrt(OA.dot(OA)) * np.sqrt(OB.dot(OB))) )
@@ -67,20 +67,38 @@ class Molecule():
 
     def get_dihedral_angle(self, a, b, c, d):
         if len(set([a, b, c, d]))!=4:
-            return
+            return 0
         AB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[a][1:])
         BC = np.array(self.__atoms[c][1:]) - np.array(self.__atoms[b][1:])
         CD = np.array(self.__atoms[d][1:]) - np.array(self.__atoms[c][1:])
         N_ABC = np.cross(AB, BC)
-        N_BCD = np.cross(BC, CD)
+        N_BCD = np.cross(CD, BC)
+        NN = np.cross(N_BCD, N_ABC)
         ANGLE = np.arccos( N_ABC.dot(N_BCD)/(np.sqrt(N_ABC.dot(N_ABC)) * np.sqrt(N_BCD.dot(N_BCD))) )
         if np.isnan(ANGLE):
-            if ANGLE<0:
-                return -np.pi
-            else:
-                return np.pi
-        else:
+            return 0
+        elif NN.dot(BC)>0:
             return ANGLE
+        elif NN.dot(BC)<0:
+            return -ANGLE
+        else:
+            return
+
+    def get_bond_level(self, a, b):
+        return self.__bonds[a].get(b, 0)
+
+    def modify_bond_level(self, a, b, bl):
+        if a == b:
+            return
+        if bl != 0:
+            self.__bonds[a][b] = bl
+            self.__bonds[b][a] = bl
+        elif bl == 0:
+            try:
+                del self.__bonds[a][b]
+                del self.__bonds[b][a]
+            except KeyError:
+                pass
 
     def modify_bond_length(self, a, b, l):
         if a == b:
@@ -94,16 +112,18 @@ class Molecule():
         OA = np.array(self.__atoms[a][1:]) - np.array(self.__atoms[o][1:])
         OB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[o][1:])
         k = tuple(sorted([a, b, o]))
-        OH = self.__N_A.get(k, np.cross(np.cross(OA, OB), OA))
-        if OH[0]<0:
-            OH = -OH
+        ON = self.__N_AOB.get(k, np.cross(OA, OB))
+        _ON = np.cross(OA, OB)
+        if any([_ON[i]*ON[i]<0 for i in range(3)]):
+            ON = -ON
+        OH = np.cross(ON, OA)
         D_OA = [l/self.get_bond_length(o, a) for l in OA]
         D_OH = [l/np.sqrt(sum(map(lambda a: a**2, OH))) for l in OH]
         L_OB = self.get_bond_length(o, b)
         New_OB = list(map(sum, zip(map(lambda x: x*L_OB*np.cos(angle), D_OA), map(lambda x: x*L_OB*np.sin(angle), D_OH))))
         if not np.isnan(L_OB) and not any([np.isnan(x) for x in D_OA]) and not any([np.isnan(x) for x in D_OH]):
             self.__atoms[b] = self.__atoms[b][0:1] + list(map(sum, zip(New_OB, self.__atoms[o][1:])))
-            self.__N_A[k] = OH
+            self.__N_AOB[k] = self.__N_AOB.get(k, ON)
         else:
             raise RuntimeWarning
 
@@ -113,37 +133,37 @@ class Molecule():
         AB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[a][1:])
         BC = np.array(self.__atoms[c][1:]) - np.array(self.__atoms[b][1:])
         CD = np.array(self.__atoms[d][1:]) - np.array(self.__atoms[c][1:])
+        ANGLE = np.arccos( CD.dot(BC)/(np.sqrt(CD.dot(CD)) * np.sqrt(BC.dot(BC))) )
         N_ABC = np.cross(AB, BC)
-        OH = np.cross(BC, N_ABC)
+        OH = np.cross(N_ABC, BC)
         D_N_ABC = [l/np.sqrt(sum(map(lambda a: a**2, N_ABC))) for l in N_ABC]
         D_OH = [l/np.sqrt(sum(map(lambda a: a**2, OH))) for l in OH]
-        D_BC = [-l/np.sqrt(sum(map(lambda a: a**2, BC))) for l in BC]
+        D_BC = [l/np.sqrt(sum(map(lambda a: a**2, BC))) for l in BC]
         N_P = list(map(sum, zip(map(lambda x: x*np.cos(angle), D_N_ABC), map(lambda x: x*np.sin(angle), D_OH))))
         New_CD = list(map(
             sum, zip(
-                map(lambda x: x*self.get_bond_length(c, d)*np.sin(self.get_bond_angle(b, c, d)), np.cross(D_BC, N_P)), 
-                map(lambda x: x*self.get_bond_length(c, d)*np.cos(self.get_bond_angle(b, c, d)), D_BC)
+                map(lambda x: x*self.get_bond_length(c, d)*np.sin(ANGLE), np.cross(D_BC, N_P)), 
+                map(lambda x: x*self.get_bond_length(c, d)*np.cos(ANGLE), D_BC)
             )
         ))
         if not any([np.isnan(x) for x in New_CD]):
             self.__atoms[d] = self.__atoms[d][0:1] + list(map(sum, zip(New_CD, self.__atoms[c][1:])))
-            self.__N_A = {}
+            self.__N_AOB = {}
+            print(self.get_dihedral_angle(a, b, c, d))
         else:
             raise RuntimeWarning
 
+    def modify_bond_length_G(self, a, b, l):
+        pass
+
+    def modify_bond_angle_G(self, a, o, b, angle):
+        pass
+    
+    def modify_dihedral_angle_G(self, a, b, c, d, angle):
+        pass
+
     def set_O(self, x, y, z):
         self.__atoms = [ [atom[0], atom[1]+x, atom[2]+y, atom[3]+z] for atom in self.__atoms ]
-
-    def get_closest_atom(self, coord):
-        a_min = 0
-        l_min = 100
-        for i, atom in enumerate(self.__atoms):
-            l = np.sqrt(sum(map(lambda A, B:(A-B)**2, atom[1:], coord)))
-            if l<l_min:
-                l_min = l
-                a_min = i
-        print(l_min)
-        return a_min
 
     def add_atom(self, a):
         pass

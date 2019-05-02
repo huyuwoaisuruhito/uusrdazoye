@@ -1,8 +1,5 @@
-import numpy as np
-
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog
 from tkinter import messagebox
 
 from tkinter.scrolledtext import ScrolledText
@@ -11,8 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import scr.file_io as fio
 import scr.ddd_plot as dp
 import scr.molecule as mol
-
-Flag = True
+import scr.toplevels as top
 
 class Main_windows(tk.Tk):
 
@@ -45,17 +41,17 @@ class Main_windows(tk.Tk):
     def open_bond_length_windows(self):
         if '_blw' in self.__dict__:
             self._blw.destroy()
-        self._blw = _Bond_length_windows(self)
+        self._blw = top._Bond_windows(self)
     
     def open_bond_angle_windows(self):
         if '_baw' in self.__dict__:
             self._baw.destroy()
-        self._baw = _Bond_angle_windows(self)
+        self._baw = top._Bond_angle_windows(self)
     
     def open_dihedral_angle_windows(self):
         if '_daw' in self.__dict__:
             self._daw.destroy()
-        self._daw = _Dihedral_angle_windows(self)
+        self._daw = top._Dihedral_angle_windows(self)
     
     def select(self, a):
         if '_blw' in self.__dict__:
@@ -96,7 +92,7 @@ class _Main_menu:
         
         #编辑
         editmenu = tk.Menu(self.menubar, tearoff=0)
-        editmenu.add_command(label="打开3D展示界面", command=self.call_3d)
+        editmenu.add_command(label="打开3D界面", command=self.call_3d)
         editmenu.add_separator()
         editmenu.add_command(label="键长", command=self.parent.open_bond_length_windows)
         editmenu.add_command(label="键角", command=self.parent.open_bond_angle_windows)
@@ -136,316 +132,6 @@ class _Main_menu:
 
     def help_operate(self):
         messagebox.showinfo()
-
-
-
-class _Bond_length_windows(tk.Toplevel):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.wm_title("键长")
-        self.resizable(width=False, height=False)
-        self.Molecule = self.parent.Molecule.copy()
-        self.__select = []
-        
-        self.a = tk.IntVar()
-        self.b = tk.IntVar()
-        self.l = tk.DoubleVar()
-        self.l.trace("w", lambda name, index, mode: self.__change_text())
-
-        f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
-        l1 = ttk.Label(f1, text='（不动的）第一个原子的序号：'); l1.grid(row=0, column=0)
-        l2 = ttk.Label(f1, text='（可调的）第二个原子的序号：'); l2.grid(row=1, column=0)
-        l3 = ttk.Label(f1, text='键长：'); l3.grid(row=2, column=0)
-
-        e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
-        e2 = ttk.Entry(f1, textvariable=self.b); e2.grid(row=1, column=1)
-        e3 = ttk.Entry(f1, textvariable=self.l); e3.grid(row=2, column=1)
-
-        f2 = ttk.Frame(self, padding=5); f2.grid(row=1, column=0)
-        self.s1 = tk.Scale(f2, label='键长（Å）:', resolution=0.001, from_=0.001, to=4, orient=tk.HORIZONTAL, length=250, command=self.__change_scale)
-        self.s1.grid(row=0, column=0)
-
-        f3 = ttk.Frame(self, padding=5); f3.grid(row=2, column=0)
-        b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=3, column=0)
-        b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=3, column=1)
-
-    def __change_scale(self, event):
-        if self.l.get() != event:
-            self.l.set(event)
-
-    def __change_text(self):
-        try:
-            if self.s1.get() != self.l.get():
-                self.s1.set(self.l.get())
-                self.Molecule.modify_bond_length(self.a.get(), self.b.get(), self.l.get())
-                self.parent.ddd.re_plot(self.Molecule)
-        except RuntimeWarning:
-            global Flag
-            if Flag:
-                Flag = False
-                messagebox.showinfo('警告', 'RuntimeWarning，请检查输入')   
-                def ___a():
-                    global Flag
-                    Flag = True
-                self.after(50, ___a())
-
-    def __commit(self):
-        try:
-                self.parent.Molecule.modify_bond_length(self.a.get(), self.b.get(), float(self.l.get()))
-                self.parent.ddd.re_plot(self.parent.Molecule)
-        except RuntimeWarning:
-            global Flag
-            if Flag:
-                Flag = False
-                messagebox.showinfo('警告', 'RuntimeWarning，请检查输入')   
-                def ___a():
-                    global Flag
-                    Flag = True
-                self.after(50, ___a())
-        self.destroy()
-    
-    def __quit(self):
-        self.parent.ddd.plot.clear_high_light()
-        self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
-        del self.parent._blw
-    
-    def __set_init(self):
-        self.l.set(self.parent.Molecule.get_bond_length(self.a.get(), self.b.get()))
-        self.s1.set(self.l.get())
-    
-    def select(self, i):
-        self.__select.append(i)
-        if len(self.__select) == 1:
-            self.a.set(i)
-        elif len(self.__select) == 2:
-            self.b.set(i)
-            self.__set_init()
-        elif len(self.__select) >= 2:
-            self.a.set(self.__select[-2])
-            self.b.set(self.__select[-1])
-            self.__set_init()
-    
-    def clear_selection(self):
-        self.__select = []
-        self.a.set(0)
-        self.b.set(0)
-        self.l.set(0)
-
-class _Bond_angle_windows(tk.Toplevel):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.wm_title("键角")
-        self.resizable(width=False, height=False)
-        self.Molecule = self.parent.Molecule.copy()
-        self.__select = []
-
-        self.o = tk.IntVar()
-        self.a = tk.IntVar()
-        self.b = tk.IntVar()
-        self.angle = tk.DoubleVar()
-        self.angle.trace("w", lambda name, index, mode: self.__change_text())
-
-        f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
-        l1 = ttk.Label(f1, text='（不动的）第一个原子的序号：'); l1.grid(row=0, column=0)
-        l2 = ttk.Label(f1, text='（不动的）顶点原子的序号：'); l2.grid(row=1, column=0)
-        l3 = ttk.Label(f1, text='（可调的）第三个原子的序号：'); l3.grid(row=2, column=0)
-        l4 = ttk.Label(f1, text='键角：'); l4.grid(row=3, column=0)
-
-        e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
-        e2 = ttk.Entry(f1, textvariable=self.o); e2.grid(row=1, column=1)
-        e3 = ttk.Entry(f1, textvariable=self.b); e3.grid(row=2, column=1)
-        e4 = ttk.Entry(f1, textvariable=self.angle); e4.grid(row=3, column=1)
-
-        f2 = ttk.Frame(self, padding=5); f2.grid(row=1, column=0)
-        self.s1 = tk.Scale(f2, label='键角:', resolution=0.1, from_=0, to=360, orient=tk.HORIZONTAL, length=250, command=self.__change_scale)
-        self.s1.grid(row=0, column=0)
-
-        f3 = ttk.Frame(self, padding=5); f3.grid(row=2, column=0)
-        b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=4, column=0)
-        b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=4, column=1)
-
-    def __change_scale(self, event):
-        if self.angle.get() != event:
-            self.angle.set(event)
-
-    def __change_text(self):
-        try:
-            if self.s1.get() != self.angle.get():
-                self.s1.set(self.angle.get())
-                self.Molecule.modify_bond_angle(self.a.get(), self.o.get(), self.b.get(), self.angle.get()/180*np.pi)
-                self.parent.ddd.re_plot(self.Molecule)  
-        except RuntimeWarning:
-            global Flag
-            if Flag:
-                Flag = False
-                messagebox.showinfo('警告', 'RuntimeWarning，请检查输入')   
-                def ___a():
-                    global Flag
-                    Flag = True
-                self.after(50, ___a())
-
-    def __commit(self):
-        try:
-            self.parent.Molecule.modify_bond_angle(self.a.get(), self.o.get(), self.b.get(), self.angle.get()/180*np.pi)
-            self.parent.ddd.re_plot(self.parent.Molecule)
-            self.destroy()
-        except RuntimeWarning:
-            global Flag
-            if Flag:
-                Flag = False
-                messagebox.showinfo('警告', 'RuntimeWarning，请检查输入')   
-                def ___a():
-                    global Flag
-                    Flag = True
-                self.after(50, ___a())
-    
-    def __quit(self):
-        self.parent.ddd.plot.clear_high_light()
-        self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
-        del self.parent._baw
-
-    def __set_init(self):
-        angle = self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())/np.pi*180
-        self.angle.set(self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())/np.pi*180)
-        self.s1.set(self.angle.get())
-
-    def select(self, i):
-        self.__select.append(i)
-        if len(self.__select) == 1:
-            self.a.set(i)
-        elif len(self.__select) == 2:
-            self.o.set(i)
-        elif len(self.__select) == 3:
-            self.b.set(i)
-            self.__set_init()
-        elif len(self.__select) >= 3:
-            self.a.set(self.__select[-3])
-            self.o.set(self.__select[-2])
-            self.b.set(self.__select[-1])
-            self.__set_init()
-    
-    def clear_selection(self):
-        self.__select = []
-        self.a.set(0)
-        self.o.set(0)
-        self.b.set(0)
-        self.angle.set(0)
-
-
-class _Dihedral_angle_windows(tk.Toplevel):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.wm_title("二面角")
-        self.resizable(width=False, height=False)
-        self.Molecule = self.parent.Molecule.copy()
-        self.__select = []
-
-        self.a = tk.IntVar()
-        self.b = tk.IntVar()
-        self.c = tk.IntVar()
-        self.d = tk.IntVar()
-        self.angle = tk.DoubleVar()
-        self.angle.trace("w", lambda name, index, mode: self.__change_text())
-
-        f1 = ttk.Frame(self, padding=5); f1.grid(row=0, column=0)
-        l1 = ttk.Label(f1, text='（不动的）第一个原子的序号：'); l1.grid(row=0, column=0)
-        l2 = ttk.Label(f1, text='（不动的）第二个原子的序号：'); l2.grid(row=1, column=0)
-        l3 = ttk.Label(f1, text='（不动的）第三个原子的序号：'); l3.grid(row=2, column=0)
-        l4 = ttk.Label(f1, text='（可调的）第四个原子的序号：'); l4.grid(row=3, column=0)
-        l5 = ttk.Label(f1, text='二面角：'); l5.grid(row=4, column=0)
-
-        e1 = ttk.Entry(f1, textvariable=self.a); e1.grid(row=0, column=1)
-        e2 = ttk.Entry(f1, textvariable=self.b); e2.grid(row=1, column=1)
-        e3 = ttk.Entry(f1, textvariable=self.c); e3.grid(row=2, column=1)
-        e4 = ttk.Entry(f1, textvariable=self.d); e4.grid(row=3, column=1)
-        e5 = ttk.Entry(f1, textvariable=self.angle); e5.grid(row=4, column=1)
-
-        f2 = ttk.Frame(self, padding=5); f2.grid(row=1, column=0)
-        self.s1 = tk.Scale(f2, label='二面角:', resolution=0.1, from_=-180, to=180, orient=tk.HORIZONTAL, length=250, command=self.__change_scale)
-        self.s1.grid(row=0, column=0)
-
-        f3 = ttk.Frame(self, padding=5); f3.grid(row=2, column=0)
-        b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=5, column=0)
-        b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=5, column=1)
-
-    def __change_scale(self, event):
-        if self.angle.get() != event:
-            self.angle.set(event)
-
-    def __change_text(self):
-        try:
-            if self.s1.get() != self.angle.get():
-                self.s1.set(self.angle.get())
-                self.Molecule.modify_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get(), self.angle.get()/180*np.pi)
-                self.parent.ddd.re_plot(self.Molecule)
-        except RuntimeWarning:
-            global Flag
-            if Flag:
-                Flag = False
-                messagebox.showinfo('警告', 'RuntimeWarning，请检查输入')   
-                def ___a():
-                    global Flag
-                    Flag = True
-                self.after(50, ___a())
-
-    def __commit(self):
-        try:
-            self.parent.Molecule.modify_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get(), self.angle.get()/180*np.pi)
-            self.parent.ddd.re_plot(self.parent.Molecule)
-            self.destroy()
-        except RuntimeWarning:
-            global Flag
-            if Flag:
-                Flag = False
-                messagebox.showinfo('警告', 'RuntimeWarning，请检查输入')   
-                def ___a():
-                    global Flag
-                    Flag = True
-                self.after(50, ___a())
-    
-    def __quit(self):
-        self.parent.ddd.plot.clear_high_light()
-        self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
-        del self.parent._daw
-
-    def __set_init(self):
-        self.angle.set(self.parent.Molecule.get_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get())/np.pi*180)
-        self.s1.set(self.angle.get())
-
-    def select(self, i):
-        self.__select.append(i)
-        if len(self.__select) == 1:
-            self.a.set(i)
-        elif len(self.__select) == 2:
-            self.b.set(i)
-        elif len(self.__select) == 3:
-            self.c.set(i)
-        elif len(self.__select) == 4:
-            self.d.set(i)
-            self.__set_init()
-        elif len(self.__select) >= 4:
-            self.a.set(self.__select[-4])
-            self.b.set(self.__select[-3])
-            self.c.set(self.__select[-2])
-            self.d.set(self.__select[-1])
-            self.__set_init()
-    
-    def clear_selection(self):
-        self.__select = []
-        self.a.set(0)
-        self.b.set(0)
-        self.c.set(0)
-        self.d.set(0)
-        self.angle.set(0)
 
 
 

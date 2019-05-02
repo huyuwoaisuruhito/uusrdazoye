@@ -26,9 +26,9 @@ class File_IO():
             atoms.append(l[0:1] + [float(ll) for ll in l[1:]])
 
         bonds = self.__M.modify_bonds()
-        [bonds.append([]) for i in range(len(atoms))]
+        [bonds.append(dict()) for i in range(len(atoms))]
         for i in range(len(inp_f[3])):
             l = inp_f[3][i]
             for j in range((len(l)-1)//2):
-                bonds[i].append([ int(l[2*j+1]) - 1, float(l[2*j+2]) ])
-                bonds[int(l[2*j+1])-1].append([ i, float(l[2*j+2]) ])
+                bonds[i][int(l[2*j+1])-1] = float(l[2*j+2])
+                bonds[int(l[2*j+1])-1][i] = float(l[2*j+2])
