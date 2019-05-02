@@ -362,6 +362,13 @@ class _DDD_windows(tk.Toplevel):
 
         self.plot.init(self.parent.Molecule)
         # https://blog.csdn.net/qq_28485501/article/details/85329343 <- refer
+
+        self.bind('<Key-Up>', self.plot.change_view_pos)
+        self.bind('<Key-Down>', self.plot.change_view_pos)
+        self.bind('<Key-Left>', self.plot.change_view_pos)
+        self.bind('<Key-Right>', self.plot.change_view_pos)
+        self.bind('<MouseWheel>', self.plot.change_view_dist)
+        #self.bind('<ButtonRelease-1>', self.plot.select)
     
     def re_plot(self, molecule):
         self.plot.re_plot(molecule)
