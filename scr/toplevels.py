@@ -14,22 +14,18 @@ def _select_style(type, vc1, vc2, __warning, func1, func2, *arg, **kw):
     if vc1.get() == '可调（仅原子）' and vc2.get() == '固定':
         func1(arg[-1], *arg[1:-1], arg[0], kw['raw']+kw['delta'])
     elif vc1.get() == '固定' and vc2.get() == '可调（仅原子）':
-            func1(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
+        func1(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
     elif vc1.get() == '可调（仅原子）' and vc2.get() == '可调（仅原子）':
-            func1(arg[-1], *arg[1:-1], arg[0], (kw['raw']+kw['delta']/2)*(-1)**type)
-            func1(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
-    else:
-        __warning('暂未支持的原子选择方式')
-    
-    return
+        func1(arg[-1], *arg[1:-1], arg[0], (kw['raw']+kw['delta']/2)*(-1)**type)
+        func1(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
 
-    if vc1.get() == '可调（基团）' and vc2.get() == '固定':
-        func2(arg[-1], *arg[1:-1], arg[0], kw['raw']+kw['delta'])
+    elif vc1.get() == '可调（基团）' and vc2.get() == '固定':
+        func2(arg[-1], *arg[1:-1], arg[0], x = kw['raw']+kw['delta'], mul = 1, dmul= 1, **kw)
     elif vc1.get() == '固定' and vc2.get() == '可调（基团）':
-        func2(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
+        func2(arg[0], *arg[1:-1], arg[-1], x = kw['raw']+kw['delta'], mul = 1, dmul=-1, **kw)
     elif vc1.get() == '可调（基团）' and vc2.get() == '可调（基团）':
-        func2(arg[-1], *arg[1:-1], arg[0], kw['raw']+kw['delta']/2)
-        func2(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
+        func2(arg[-1], *arg[1:-1], arg[0], x = kw['raw']+kw['delta']/2, mul = 0.5, dmul= 0.5, **kw)
+        func2(arg[0], *arg[1:-1], arg[-1], x = kw['raw']+kw['delta'], mul = 1, dmul=-0.5, **kw)
     else:
         __warning('暂未支持的原子选择方式')
         return
@@ -40,7 +36,7 @@ class _Bond_windows(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.wm_title("键长")
+        self.wm_title("键设定")
         self.resizable(width=False, height=False)
         self.Molecule = self.parent.Molecule.copy()
         self.__select = []
@@ -65,7 +61,7 @@ class _Bond_windows(tk.Toplevel):
         c1.grid(row=0, column=2); self.vc1.set('可调（仅原子）')
         c2 = ttk.Combobox(f0, textvariable=self.vc2, values=style, exportselection=0, state='readonly')
         c2.grid(row=1, column=2); self.vc2.set('可调（仅原子）')
-        l3 = ttk.Label(f0, text='可在3D图形中点选'); l3.grid(row=2, columnspan=3)
+        l4 = ttk.Label(f0, text='可在3D图形中点选'); l4.grid(row=2, columnspan=3)
 
         f1 = ttk.LabelFrame(self, padding=5, text='键级'); f1.grid(row=1, column=0)
         r1 = ttk.Radiobutton(f1, width=5, text='0', variable=self.bl, value=0.0); r1.grid(row=0, column=0)
@@ -84,11 +80,11 @@ class _Bond_windows(tk.Toplevel):
         b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=0, column=0)
         b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=0, column=1)
 
-    def __modify_bond_length(self):
+    def __modify_bond_length(self, Molecule):
         try:
-            raw = self.Molecule.get_bond_length(self.a.get(), self.b.get())
-            _select_style(0, self.vc1, self.vc2, self.__warning, self.Molecule.modify_bond_length, 
-                        self.Molecule.modify_bond_length_G, self.a.get(), self.b.get(),
+            raw = Molecule.get_bond_length(self.a.get(), self.b.get())
+            _select_style(0, self.vc1, self.vc2, self.__warning, Molecule.modify_bond_length, 
+                        Molecule.modify_bond_length_G, self.a.get(), self.b.get(),
                         raw = raw, delta = self.l.get()-raw)
             self.parent.ddd.re_plot(self.Molecule)
         except RuntimeWarning:
@@ -105,11 +101,12 @@ class _Bond_windows(tk.Toplevel):
             self.l.set(event)
 
     def __change_text(self):
-        self.__modify_bond_length()
+        self.__modify_bond_length(self.Molecule)
         self.s1.set(self.l.get())
 
     def __commit(self):
-        self.__modify_bond_length()
+        self.__modify_bond_length(self.parent.Molecule)
+        self.parent.ddd.plot.clear_high_light()
         self.destroy()
     
     def __warning(self, t):
@@ -183,7 +180,7 @@ class _Bond_angle_windows(tk.Toplevel):
         c1.grid(row=0, column=2); self.vc1.set('可调（仅原子）')
         c3 = ttk.Combobox(f0, textvariable=self.vc3, values=style, exportselection=0, state='readonly')
         c3.grid(row=2, column=2); self.vc3.set('可调（仅原子）')
-        l5 = ttk.Label(f0, text='可在3D图形中点选'); l3.grid(row=3, columnspan=3)
+        l5 = ttk.Label(f0, text='可在3D图形中点选'); l5.grid(row=3, columnspan=3)
 
         f2 = ttk.LabelFrame(self, padding=5, text='键角'); f2.grid(row=1, column=0)
         l4 = ttk.Label(f2, text='键角：'); l4.grid(row=0, column=0)
@@ -195,11 +192,11 @@ class _Bond_angle_windows(tk.Toplevel):
         b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=4, column=0)
         b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=4, column=1)
 
-    def __modify_bond_angle(self):
+    def __modify_bond_angle(self, Molecule):
         try:
-            raw = self.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())
-            _select_style(0, self.vc1, self.vc3, self.__warning, self.Molecule.modify_bond_angle, 
-                        self.Molecule.modify_bond_angle_G, self.a.get(), self.o.get(), self.b.get(), 
+            raw = Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())
+            _select_style(0, self.vc1, self.vc3, self.__warning, Molecule.modify_bond_angle, 
+                        Molecule.modify_bond_angle_G, self.a.get(), self.o.get(), self.b.get(), 
                         raw = raw, delta = self.angle.get()/180*np.pi - raw)
             self.parent.ddd.re_plot(self.Molecule)
         except RuntimeWarning:
@@ -210,11 +207,12 @@ class _Bond_angle_windows(tk.Toplevel):
             self.angle.set(event)
 
     def __change_text(self):
-        self.__modify_bond_angle()
+        self.__modify_bond_angle(self.Molecule)
         self.s1.set(self.angle.get())
 
     def __commit(self):
-        self.__modify_bond_angle()
+        self.__modify_bond_angle(self.parent.Molecule)
+        self.parent.ddd.plot.clear_high_light()
         self.destroy()
 
     def __warning(self, t):
@@ -306,11 +304,11 @@ class _Dihedral_angle_windows(tk.Toplevel):
         b1 = ttk.Button(f3, text='确定', command=self.__commit); b1.grid(row=0, column=0)
         b2 = ttk.Button(f3, text='取消', command=self.__quit); b2.grid(row=0, column=1)
 
-    def __modify_dihedral_angle(self):
+    def __modify_dihedral_angle(self, Molecule):
         try:
-            raw = self.Molecule.get_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get())
-            _select_style(1, self.vc1, self.vc4, self.__warning, self.Molecule.modify_dihedral_angle, 
-                        self.Molecule.modify_dihedral_angle_G, self.a.get(), self.b.get(), self.c.get(), self.d.get(), 
+            raw = Molecule.get_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get())
+            _select_style(0, self.vc1, self.vc4, self.__warning, Molecule.modify_dihedral_angle, 
+                        Molecule.modify_dihedral_angle_G, self.a.get(), self.b.get(), self.c.get(), self.d.get(), 
                         raw = raw, delta = self.angle.get()/180*np.pi - raw)
             self.parent.ddd.re_plot(self.Molecule)
         except RuntimeWarning:
@@ -321,11 +319,12 @@ class _Dihedral_angle_windows(tk.Toplevel):
             self.angle.set(event)
 
     def __change_text(self):
-        self.__modify_dihedral_angle()
+        self.__modify_dihedral_angle(self.Molecule)
         self.s1.set(self.angle.get())
 
     def __commit(self):
-        self.__modify_dihedral_angle()
+        self.__modify_dihedral_angle(self.parent.Molecule)
+        self.parent.ddd.plot.clear_high_light()
         self.destroy()
 
     def __warning(self, t):

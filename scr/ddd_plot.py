@@ -41,7 +41,7 @@ class DDD_plot():
         self.ax.set_ylim3d(-_max, _max)
         self.ax.set_zlim3d(-_max, _max)
 
-        self.plot_bonds(atoms, bonds, 5/_max)
+        self.plot_bonds(atoms, bonds, 5/_max) 
     
     def re_plot(self, molecule):
         self.ax.clear()

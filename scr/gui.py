@@ -28,7 +28,10 @@ class Main_windows(tk.Tk):
         self.__log.grid(row=0, column=1, sticky=tk.N+tk.S+tk.E)
 
         self.Molecule = mol.Molecule()
+
         self.fio = fio.File_IO(self, self.Molecule)
+        self.fio.input_gaussian_file('Gaussian_inp\\Gly.gjf')#testing
+        self.Molecule.auto_set_O()
 
         self.open_3d_windows()
         #self.Molecule.test()
@@ -68,6 +71,9 @@ class Main_windows(tk.Tk):
             self._baw.clear_selection()
         if '_daw' in self.__dict__:
             self._daw.clear_selection()
+    
+    def warning(self, t):
+        messagebox.showinfo('警告', t)
 
 
 class _Main_menu:
@@ -92,7 +98,8 @@ class _Main_menu:
         
         #编辑
         editmenu = tk.Menu(self.menubar, tearoff=0)
-        editmenu.add_command(label="打开3D界面", command=self.call_3d)
+        editmenu.add_command(label="打开3D界面", command=self.__call_3d)
+        editmenu.add_command(label="自动调整原点", command=self.__auto_set_O)
         editmenu.add_separator()
         editmenu.add_command(label="键长", command=self.parent.open_bond_length_windows)
         editmenu.add_command(label="键角", command=self.parent.open_bond_angle_windows)
@@ -100,7 +107,7 @@ class _Main_menu:
 
         #计算
         compmenu = tk.Menu(self.menubar, tearoff=0)
-        compmenu.add_command(label="用MM优化分子构象", command=self.call_3d)
+        compmenu.add_command(label="用MM优化分子构象", command=self.__com_MM)
 
         #帮助
         helpmenu = tk.Menu(self.menubar, tearoff=0)
@@ -121,10 +128,14 @@ class _Main_menu:
     def file_save(self):
         pass
 
-    def _com_MM(self):
+    def __com_MM(self):
         pass
 
-    def call_3d(self):
+    def __auto_set_O(self):
+        self.parent.Molecule.auto_set_O()
+        self.parent.ddd.re_plot(self.parent.Molecule)
+
+    def __call_3d(self):
         self.parent.open_3d_windows()
 
     def help_about(self):
@@ -146,7 +157,6 @@ class _DDD_windows(tk.Toplevel):
         self.parent = parent
 
         self.plot = dp.DDD_plot()
-        self.parent.fio.input_gaussian_file('Gaussian_inp\\HCHO.gjf')#testing
 
         canvas = FigureCanvasTkAgg(self.plot.fig, self)
         canvas.draw()
@@ -186,7 +196,6 @@ class _DDD_windows(tk.Toplevel):
         self.plot.re_plot(molecule)
 
 
-
 class _DD_frame(tk.Frame):
 
     '''2D绘图类'''
@@ -213,6 +222,8 @@ class Log(tk.Frame):
         self.__text = tk.scrolledtext.ScrolledText(self, width=40, height=40, state = tk.DISABLED)
         self.__label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         self.__text.grid(row=1, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
+        self.bind('<<A>>', self.log_call_back)
+        self.event_generate('<<A>>')
 
     def log_call_back(self, event):
         self.__text['state'] = tk.NORMAL
