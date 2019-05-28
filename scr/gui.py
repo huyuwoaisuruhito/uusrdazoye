@@ -10,6 +10,9 @@ import scr.ddd_plot as dp
 import scr.molecule as mol
 import scr.toplevels as top
 
+import mm.computing as comp
+
+
 class Main_windows(tk.Tk):
 
     '''主窗口类'''
@@ -19,6 +22,8 @@ class Main_windows(tk.Tk):
         self.wm_title("测试")
         self.geometry("800x600")
 
+        self.Computer = None
+        
         self.__menu = _Main_menu(self)
         self.__dd_frame = _DD_frame(self)
         self.__log = Log(self)
@@ -129,7 +134,11 @@ class _Main_menu:
         pass
 
     def __com_MM(self):
-        pass
+        self.parent.Computer = comp.Computing(self.parent, self.parent.Molecule)
+        try:
+            self.parent.Computer.run()
+        except (AtomTypeError, DataTypeError) as error:
+            self.parent.warning(error)
 
     def __auto_set_O(self):
         self.parent.Molecule.auto_set_O()
@@ -222,10 +231,12 @@ class Log(tk.Frame):
         self.__text = tk.scrolledtext.ScrolledText(self, width=40, height=40, state = tk.DISABLED)
         self.__label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         self.__text.grid(row=1, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
-        self.bind('<<A>>', self.log_call_back)
-        self.event_generate('<<A>>')
+        self._parent = parent
+        
+        self._parent.bind('<<Changelog>>', self.log_call_back)
 
     def log_call_back(self, event):
         self.__text['state'] = tk.NORMAL
-        self.__text.insert(tk.END, '\n' + event)#event不能提供信息，交互有待实现
+        self.__text.insert(tk.END, '\n' + self._parent.Computer.message)
         self.__text['state'] = tk.DISABLED
+
