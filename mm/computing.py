@@ -50,9 +50,10 @@ class Computing:
         self._parent.event_generate("<<Changelog>>")
         self._parent.event_generate("<<Changeview>>")
         
-        while max([np.sqrt(force.dot(force)) for force in self._forces]) > 0.00077:
+        while max([np.sqrt(force.dot(force)) for force in self._forces]) > 0.00005:
+            
             self.__calc()
-            if self._times % 20 == 1:
+            if self._times % 5 == 1:
                 atomsites = self._molecule.modify_atoms()
                 for i, site in enumerate(self.sites):
                     atomsites[i][1:] = list(site)
@@ -70,11 +71,11 @@ class Computing:
         self.message = "开始计算\r\n\r\n---------------------------------------"
     
     def __printstep(self):
-        stepdatas = (self._times//20, self._potential, self._oldpotential - self._potential)
-        self.message = "\n计算轮次: {0}\n总能量:\t{1} kJ/mol\n能量下降:\t{2} kJ/mol".format(*[str(i) for i in stepdatas])
+        stepdatas = (self._times//5, self._potential, self._oldpotential - self._potential)
+        self.message = "\n计算轮次: {0:d}\n总能量:\t{1:.4f} kJ/mol\n能量下降:\t{2:.4f} kJ/mol".format(*stepdatas)
     
     def __printfinish(self):
-        self.message = "\n总能量:\t{0} kJ/mol\n共计算 {1} 次 \n\r\n计算结束\r\n\r\n---------------------------------------".format(str(self._potential), str(self._times))
+        self.message = "\n总能量:\t{0:.4f} kJ/mol\n共计算 {1:d} 次 \n\r\n计算结束\r\n\r\n---------------------------------------".format(self._potential, self._times)
     
     def __calc(self):
         #计算新坐标对应的势能
@@ -107,12 +108,15 @@ class Computing:
         newpotential += np.sum([potential_nonbond(self._newsites[nb[0]], self._newsites[nb[1]], self._nonbonddatas[nb])
                             for nb in self._nonbonds])
         
-        if newpotential < self._potential:
-            self._step *= 1.2
+        if self._times == 0:
             self._potential = newpotential
-            self.sites = self._newsites[:]
         else:
-            self._step *= 0.2
+            if newpotential < self._potential:
+                self._step *= 1.2
+                self._potential = newpotential
+                self.sites = self._newsites[:]
+            else:
+                self._step *= 0.6
         
         #计算力（势能偏导）以得到一组新坐标
         def fbond(num1, array1, array2, bonddata):

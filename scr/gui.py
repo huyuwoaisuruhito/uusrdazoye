@@ -12,6 +12,8 @@ import scr.toplevels as top
 
 import mm.computing as comp
 
+from mm.computing import DataTypeError
+from mm.atomtype import AtomTypeError
 
 class Main_windows(tk.Tk):
 
