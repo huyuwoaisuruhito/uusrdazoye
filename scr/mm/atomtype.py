@@ -61,19 +61,19 @@ class Atoms:
             for ring in v_membered:
                 if num in ring:
                     in_v = True
-                    i = ring.find(num)
-                    ringneibers = site[ring[(i+1)%5]] + site[ring[(i+4)%5]]
+                    i = ring.index(num)
+                    ringneibers = sites[ring[(i+1)%5]] + sites[ring[(i+4)%5]]
                     ringneiber_nums = (ring[(i+1)%5], ring[(i+4)%5])
                     ringneiber_neibers = "".join([
-                        site[i[0]] for k in ringneiber_nums
+                        sites[i[0]] for k in ringneiber_nums
                         for j in bondings[k]
-                        for i in j if site[k] == "N"
+                        for i in j if sites[k] == "N"
                     ])
             for ring in vi_membered:
                 if num in ring:
                     in_vi = True
-                    i = ring.find(num)
-                    vi_ringneibers = site[ring[(i+1)%6]] + site[ring[(i+5)%6]]
+                    i = ring.index(num)
+                    vi_ringneibers = sites[ring[(i+1)%6]] + sites[ring[(i+5)%6]]
             
             aro = False
             if 1.5 in [i[1] for i in bonds]:
@@ -209,6 +209,7 @@ class Atoms:
         return "O"
     
     def __sulfur(num, bondings, sites):
+        bonds = bondings[num]
         neibers = "".join([sites[i[0]] for i in bonds])
         if "H" in neibers:
             return "SH"
