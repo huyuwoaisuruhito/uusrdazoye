@@ -71,7 +71,7 @@ class Bondingmaps:
                 if atoms[p]:
                     continue
                 path = []
-                while p not in crossings:
+                while p not in crossings:#death loop with nul
                     path.append(p)
                     atoms[p] =  1
                     if atoms[framework[p][0]]:

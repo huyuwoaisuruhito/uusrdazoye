@@ -5,10 +5,10 @@
 力场：amber03
 """
 
-
+import time
 import numpy as np
-from mm.bonding_information import Bondingmaps
-from mm.atomtype import Atoms
+from scr.mm.bonding_information import Bondingmaps
+from scr.mm.atomtype import Atoms
 from scr.molecule import Molecule
 
 
@@ -47,38 +47,40 @@ class Computing:
         self.__calc()
         self._oldpotential = self._potential
         self.__printstart()
-        self._parent.event_generate("<<Changelog>>")
-        self._parent.event_generate("<<Changeview>>")
+        self._parent.event_generate("<<UpadateLog>>")
+        self._parent.event_generate("<<Upadate3DView>>")
         
         while max([np.sqrt(force.dot(force)) for force in self._forces]) > 0.00005:
             
             self.__calc()
             if self._times % 5 == 1:
+                t, dt = time.time(), time.time() - t
                 atomsites = self._molecule.modify_atoms()
                 for i, site in enumerate(self.sites):
                     atomsites[i][1:] = list(site)
                 
                 self.__printstep()
-                self._parent.event_generate("<<Changelog>>")
-                self._parent.event_generate("<<Changeview>>")
+                self._parent.event_generate("<<UpadateLog>>")
+                self._parent.event_generate("<<Upadate3DView>>")
                 self._oldpotential = self._potential
         
         self.__printfinish()
-        self._parent.event_generate("<<Changelog>>")
-        self._parent.event_generate("<<Changeview>>")
+        self._parent.event_generate("<<UpadateLog>>")
+        self._parent.event_generate("<<Upadate3DView>>")
     
     def __printstart(self):
-        self.message = "开始计算\r\n\r\n---------------------------------------"
+        self.message = "---------------------------------------\n\n开始计算\n\n---------------------------------------"
     
     def __printstep(self):
         stepdatas = (self._times//5, self._potential, self._oldpotential - self._potential)
         self.message = "\n计算轮次: {0:d}\n总能量:\t{1:.4f} kJ/mol\n能量下降:\t{2:.4f} kJ/mol".format(*stepdatas)
     
     def __printfinish(self):
-        self.message = "\n总能量:\t{0:.4f} kJ/mol\n共计算 {1:d} 次 \n\r\n计算结束\r\n\r\n---------------------------------------".format(self._potential, self._times)
+        self.message = "\n总能量:\t{0:.4f} kJ/mol\n共计算 {1:d} 次\n\n---------------------------------------\n\n计算结束\n\n---------------------------------------\n\n".format(self._potential, self._times)
     
     def __calc(self):
         #计算新坐标对应的势能
+        t = time.time()
         def potential_bond(array1, array2, bonddata):
             arrayr = array1 - array2
             return bonddata[2] * (np.sqrt(arrayr.dot(arrayr)) - bonddata[1])**2 / 2
@@ -119,6 +121,8 @@ class Computing:
                 self._step *= 0.6
         
         #计算力（势能偏导）以得到一组新坐标
+        t, dt = time.time(), time.time() - t
+        print('Form:%f'%dt)
         def fbond(num1, array1, array2, bonddata):
             arrayr = array2 - array1
             r = np.sqrt(arrayr.dot(arrayr))
@@ -166,27 +170,37 @@ class Computing:
             rd = nonbonddata[0] / r
             return (12 * nonbonddata[1]*(rd**12 - rd**6) / r**2) * arrayr
         
-        forces = np.array([(0.0, 0.0, 0.0) for i in range(len(self.sites))])
+        forces = np.zeros((len(self.sites), 3))
+        t, dt = time.time(), time.time() - t
+        print('F_Z:%f'%dt)
         for bond in self._bonds:
             forces[bond[0]] += fbond(bond[0], self.sites[bond[0]], self.sites[bond[1]], self._bonddatas[bond])
             forces[bond[1]] += fbond(bond[1], self.sites[bond[1]], self.sites[bond[0]], self._bonddatas[bond])
+        t, dt = time.time(), time.time() - t
+        print('d_BL:%f'%dt)
         
         for angle in self._angles:
             forces[angle[0]] += fangle_s(angle[0], *[self.sites[at] for at in angle], self._angledatas[angle])
             forces[angle[2]] += fangle_s(angle[2], *[self.sites[at] for at in reversed(angle)], self._angledatas[angle])
             forces[angle[1]] += fangle_c(angle[1], *[self.sites[at] for at in angle], self._angledatas[angle])
-        
+        t, dt = time.time(), time.time() - t
+        print('d_BA:%f'%dt)
+
         for dh in self._dihedrals:
             forces[dh[0]] += fdihedral_s(dh[0], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
             forces[dh[3]] += fdihedral_s(dh[3], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
             forces[dh[1]] += fdihedral_c(dh[1], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
             forces[dh[2]] += fdihedral_c(dh[2], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
+        t, dt = time.time(), time.time() - t
+        print('d_DH:%f'%dt)
         
         for nonbond in self._nonbonds:
             forces[nonbond[0]] += fnonbond(nonbond[0], *[self.sites[at] for at in nonbond], self._nonbonddatas[nonbond])
             forces[nonbond[1]] += fnonbond(nonbond[1], *[self.sites[at] for at in reversed(nonbond)], self._nonbonddatas[nonbond])
+        t, dt = time.time(), time.time() - t
+        print('d_NB:%f'%dt)
         
-        maxforce = max([np.sqrt(force.dot(force)) for force in forces])
+        maxforce = forces.max()#max([np.sqrt(force.dot(force)) for force in forces])
         if maxforce >= 0.00077:
             self._forces = forces * (self._step / maxforce)
         else:

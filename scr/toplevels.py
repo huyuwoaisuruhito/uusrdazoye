@@ -107,6 +107,7 @@ class _Bond_windows(tk.Toplevel):
     def __commit(self):
         self.__modify_bond_length(self.parent.Molecule)
         self.parent.ddd.plot.clear_high_light()
+        self.parent.ddd.re_plot(self.parent.Molecule)
         self.destroy()
     
     def __warning(self, t):
@@ -213,6 +214,7 @@ class _Bond_angle_windows(tk.Toplevel):
     def __commit(self):
         self.__modify_bond_angle(self.parent.Molecule)
         self.parent.ddd.plot.clear_high_light()
+        self.parent.ddd.re_plot(self.parent.Molecule)
         self.destroy()
 
     def __warning(self, t):
@@ -325,6 +327,7 @@ class _Dihedral_angle_windows(tk.Toplevel):
     def __commit(self):
         self.__modify_dihedral_angle(self.parent.Molecule)
         self.parent.ddd.plot.clear_high_light()
+        self.parent.ddd.re_plot(self.parent.Molecule)
         self.destroy()
 
     def __warning(self, t):

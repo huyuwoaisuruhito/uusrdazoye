@@ -7,7 +7,7 @@ F_RADII = {
     'H': 0.1, 'B': 0.15, 'C': 0.2, 'N': 0.2, 'O': 0.2, 'F': 0.2, 'Si': 0.3, 'P': 0.3, 'S': 0.3, 'Cl': 0.3,
 }
 F_COLOR = {
-    'H': 'whitesmoke', 'B': 0.15, 'C': 'dimgray', 'N': 'blue', 'O': 'red', 'F': 'greenyellow', 'Si': 0.3, 'P': 'magenta', 'S': 'gold', 'Cl': 'limegreen',
+    'H': 'whitesmoke', 'B': 'darkgray', 'C': 'dimgray', 'N': 'blue', 'O': 'red', 'F': 'greenyellow', 'Si': 'whitesmoke', 'P': 'magenta', 'S': 'gold', 'Cl': 'limegreen',
 }
 
 
@@ -89,8 +89,8 @@ class DDD_plot():
     def plot_atoms(self, atoms):
         __selectable = []
         for i, atom in enumerate(atoms):
-            r = F_RADII[atom[0]]
-            c = F_COLOR[atom[0]]
+            r = F_RADII.get(atom[0], 0.2)
+            c = F_COLOR.get(atom[0], 'fuchsia')
             f = False
 
             u = np.linspace(0, 2 * np.pi, 10)
@@ -103,7 +103,7 @@ class DDD_plot():
                 c = 'aqua'
                 f = True
             __selectable.append([self.ax.plot_surface(_x, _y, _z, color=c, alpha=0.5, picker=1), c, f])
-            self.ax.text(atom[1], atom[2], atom[3], '[%d]' %i, fontsize='large')
+            self.ax.text(atom[1], atom[2], atom[3], '[%d]' %i, fontsize='small')
         self.__selectable = __selectable
     
     def plot_bonds(self, atoms, bonding, l):
@@ -114,8 +114,8 @@ class DDD_plot():
                 for j, bl in bonds.items():
                     if j<i-1: continue
                     B = atoms[j]
-                    c_B = F_COLOR[B[0]]
-                    c_A = F_COLOR[A[0]]
+                    c_B = F_COLOR.get(B[0], 'fuchsia')
+                    c_A = F_COLOR.get(A[0], 'fuchsia')
 
                     if bl == 1:
                         theta = np.linspace(0, 1, 8)
@@ -128,7 +128,7 @@ class DDD_plot():
                     
                     elif bl == 2 or bl == 1.5:    
                         if len(bonds)<2 and len(bonding[j])<2:
-                            delta = [1/10/np.sqrt(l), 0, 0]
+                            delta = [0.05, 0, 0]
                         else:
                             if len(bonds)<2:
                                 A, B = B, A
@@ -142,8 +142,8 @@ class DDD_plot():
                             if sum(fxl) == 0:
                                 fxl = [0.5, 0.5, 0.5]
                             delta = np.cross(n1, fxl)
-                            su = np.sqrt(delta[0]**2 + delta[1]**2 + delta[2]**2)
-                            delta = [delta[i]/su/10/np.sqrt(l) for i in range(3)]
+                            delta = [l/np.sqrt(sum(map(lambda a: a**2, delta))) for l in delta]
+                            delta = [delta[i]*0.05 for i in range(3)]
 
                         theta = np.linspace(0, 1, 8)
                         x = (A[1]-B[1])*theta + B[1]
@@ -162,8 +162,10 @@ class DDD_plot():
                             color = c_A, linewidth = l)
 
                         else:
-                            self.ax.plot(x[:5], y[:5], z[:5], color = c_B, linewidth = l)
-                            self.ax.plot(x[4:], y[4:], z[4:], color = c_A, linewidth = l)
+                            self.ax.plot(x[:5] + delta[0], y[:5] + delta[1], z[:5] + delta[2], 
+                            color = c_B, linewidth = l)
+                            self.ax.plot(x[4:] + delta[0], y[4:] + delta[1], z[4:] + delta[2], 
+                            color = c_A, linewidth = l)
 
                             for i in range(4):
                                 if i<=2:
