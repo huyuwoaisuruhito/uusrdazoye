@@ -104,7 +104,7 @@ class Bondingmaps:
             ways[a].append(b)
             ways[b].append(a)
         
-        noderings = bondingmap.__findrings(ways)
+        noderings = Bondingmaps.__findrings(ways)
         for nodering in noderings:
             ring = []
             for i, node in enumerate(nodering):
