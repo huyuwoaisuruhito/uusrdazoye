@@ -173,6 +173,7 @@ class Computing:
         forces = np.zeros((len(self.sites), 3))
         t, dt = time.time(), time.time() - t
         print('F_Z:%f'%dt)
+
         for bond in self._bonds:
             forces[bond[0]] += fbond(bond[0], self.sites[bond[0]], self.sites[bond[1]], self._bonddatas[bond])
             forces[bond[1]] += fbond(bond[1], self.sites[bond[1]], self.sites[bond[0]], self._bonddatas[bond])
@@ -201,6 +202,8 @@ class Computing:
         print('d_NB:%f'%dt)
         
         maxforce = forces.max()#max([np.sqrt(force.dot(force)) for force in forces])
+        t, dt = time.time(), time.time() - t
+        print('d_MAX:%f'%dt)
         if maxforce >= 0.00077:
             self._forces = forces * (self._step / maxforce)
         else:
