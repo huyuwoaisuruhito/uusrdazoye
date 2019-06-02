@@ -9,7 +9,6 @@ import time
 import numpy as np
 from scr.mm.bonding_information import Bondingmaps
 from scr.mm.atomtype import Atoms
-from scr.molecule import Molecule
 
 
 class DataTypeError(TypeError):
@@ -42,6 +41,9 @@ class Computing:
         self._oldpotential = 0
         self.message = ""
         self._times = 0
+        self._countmin = 0
+        self._countstop = 0
+        self._jumpstep = 0.01
         
     def run(self):
         self.__calc()
@@ -49,10 +51,14 @@ class Computing:
         self.__printstart()
         self._parent.event_generate("<<UpadateLog>>")
         self._parent.event_generate("<<Upadate3DView>>")
+        t = time.time()
         
-        while max([np.sqrt(force.dot(force)) for force in self._forces]) > 0.00005:
+        while True:
             
             self.__calc()
+            if self._countstop > 30:
+                break
+            
             if self._times % 5 == 1:
                 t, dt = time.time(), time.time() - t
                 atomsites = self._molecule.modify_atoms()
@@ -88,13 +94,19 @@ class Computing:
         def potential_angle(array1, array2, array3, angledata):
             aleft = array1 - array2
             aright = array3 - array2
-            theta = np.arccos(aleft.dot(aright)/np.sqrt(aleft.dot(aleft) * aright.dot(aright)))
+            cosa = aleft.dot(aright)/np.sqrt(aleft.dot(aleft) * aright.dot(aright))
+            if abs(cosa) < 1: theta = np.arccos(cosa)
+            elif cosa > 0: theta = 0
+            else: theta = np.pi
             return angledata[1] * (theta - angledata[0])**2 / 2
         
         def potential_dihedral(array1, array2, array3, array4, dihedraldata):
             a1 = np.cross((array2 - array1), (array3 - array2))
             a2 = np.cross((array3 - array2), (array4 - array3))
-            phi = np.arccos(a1.dot(a2)/np.sqrt(a1.dot(a1) * a2.dot(a2)))
+            cosa = a1.dot(a2)/np.sqrt(a1.dot(a1) * a2.dot(a2))
+            if abs(cosa) < 1: phi = np.arccos(cosa)
+            elif cosa > 0: phi = 0
+            else: phi = np.pi
             return np.sum([data[2]*np.cos(data[0]*phi - data[1]) for data in dihedraldata[1]])
         
         def potential_nonbond(array1, array2, nonbonddata):
@@ -112,13 +124,36 @@ class Computing:
         
         if self._times == 0:
             self._potential = newpotential
+            self._privpotential = self._potential
         else:
+            print("potentials", self._potential, newpotential)
             if newpotential < self._potential:
                 self._step *= 1.2
                 self._potential = newpotential
                 self.sites = self._newsites[:]
             else:
-                self._step *= 0.6
+                self._step *= 0.5
+                self._countmin += 1
+                
+                if self._countmin > 4:
+                    if self._potential < self._privpotential:
+                        self._privpotential = self._potential
+                        self._privsites = self.sites
+                        self._jumpstep = 0.01
+                        self._countstop = 0
+                    else:
+                        self._countstop += 1
+                        self._jumpstep *= 1.01
+                    
+                    #maxforce = self._forces.max()
+                    #indexs = np.around(self._forces / maxforce * 2, decimals=1) + np.ones((len(self.sites), 3))
+                    #forces = np.random.random((len(self.sites), 3)) ** indexs * self._jumpstep
+                    forces = np.random.random((len(self.sites), 3)) * self._jumpstep
+                    self._newsites = self.sites + forces
+                    
+                    self._countmin = 0
+                    self._step = 0.01
+                    return
         
         #计算力（势能偏导）以得到一组新坐标
         t, dt = time.time(), time.time() - t
@@ -170,7 +205,7 @@ class Computing:
             rd = nonbonddata[0] / r
             return (12 * nonbonddata[1]*(rd**12 - rd**6) / r**2) * arrayr
         
-        forces = np.zeros((len(self.sites), 3))
+        forces = np.random.random((len(self.sites), 3)) * 10**-9
         t, dt = time.time(), time.time() - t
         print('F_Z:%f'%dt)
 
@@ -201,15 +236,13 @@ class Computing:
         t, dt = time.time(), time.time() - t
         print('d_NB:%f'%dt)
         
-        maxforce = forces.max()#max([np.sqrt(force.dot(force)) for force in forces])
-        t, dt = time.time(), time.time() - t
-        print('d_MAX:%f'%dt)
-        if maxforce >= 0.00077:
+        maxforce = forces.max() #max([np.sqrt(force.dot(force)) for force in forces])
+        if maxforce >= 5 * 10**-8:
             self._forces = forces * (self._step / maxforce)
         else:
             self._forces = forces
 
-        self._newsites += self._forces
+        self._newsites = self.sites + self._forces
         self._times += 1
     
     
@@ -368,6 +401,3 @@ class Computing:
                 Atoms(num, bondingmap)
         return Atoms.gettypelist()[:]
 
-
-if __name__ == "__main__":
-    mol = Molecule()

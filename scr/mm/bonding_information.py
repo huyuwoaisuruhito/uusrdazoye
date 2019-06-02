@@ -60,7 +60,7 @@ class Bondingmaps:
         
         if len(crossings) == 0:
             if len(framework) != 0:
-                rings = [i for i, bonds in enumerate(framework) if len(bonds) != 0]
+                rings = [[i for i, bonds in enumerate(framework) if len(bonds) != 0]]
                 return rings
             return []
         
@@ -70,14 +70,19 @@ class Bondingmaps:
             for p in framework[start]:
                 if atoms[p]:
                     continue
+                
                 path = []
+                count = 0
                 while p not in crossings:#death loop with nul
                     path.append(p)
                     atoms[p] =  1
-                    if atoms[framework[p][0]]:
-                        p = framework[p][1]
-                    else:
-                        p = framework[p][0]
+                    count += 1
+                    for at in framework[p]:
+                        if at in crossings and count != 1:
+                            p = at
+                        if not atoms[at]:
+                            p = at
+                
                 if start <= p:
                     key = (start, p)
                     if key not in edges:
@@ -108,8 +113,13 @@ class Bondingmaps:
         for nodering in noderings:
             ring = []
             for i, node in enumerate(nodering):
-                ring += shortedges[(nodering[i-1], node)]
+                key = (nodering[i-1], node)
+                if key[0] > key[1]:
+                    key = (node, nodering[i-1])
+                ring += shortedges[key]
                 ring.append(node)
-            rings.append(ring)
+            if len(ring) != 0:
+                rings.append(ring)
         
         return rings
+
