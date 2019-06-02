@@ -27,7 +27,7 @@ class Main_windows(tk.Tk):
         self.Computer = None
         self.Molecule = mol.Molecule()
         self.fio = fio.File_IO(self, self.Molecule)
-        self.fio.input_gaussian_file('Gaussian_inp\\Arg.gjf')#testing
+        self.fio.input_gaussian_file('Gaussian_inp\\Warnig.gjf')#testing
         self.Molecule.auto_set_O()
         
         self.__menu = _Main_menu(self)

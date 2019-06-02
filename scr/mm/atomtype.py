@@ -14,9 +14,7 @@ class Atoms:
         sites = [i[0] for i in bondingmap.sites]
         name = sites[num]
         bondings = bondingmap.bondings
-        relations = bondingmap.relations
         
-        rings = bondingmap.rings
         v_membered = bondingmap.v_membered_rings
         vi_membered = bondingmap.vi_membered_rings
         
@@ -65,9 +63,8 @@ class Atoms:
                     ringneibers = sites[ring[(i+1)%5]] + sites[ring[(i+4)%5]]
                     ringneiber_nums = (ring[(i+1)%5], ring[(i+4)%5])
                     ringneiber_neibers = "".join([
-                        sites[i[0]] for k in ringneiber_nums
-                        for j in bondings[k]
-                        for i in j if sites[k] == "N"
+                        sites[j[0]] for k in ringneiber_nums
+                        for j in bondings[k] if sites[k] == "N" and j[0] != num
                     ])
             for ring in vi_membered:
                 if num in ring:
@@ -214,3 +211,4 @@ class Atoms:
         if "H" in neibers:
             return "SH"
         return "S"
+

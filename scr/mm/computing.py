@@ -88,13 +88,21 @@ class Computing:
         def potential_angle(array1, array2, array3, angledata):
             aleft = array1 - array2
             aright = array3 - array2
-            theta = np.arccos(aleft.dot(aright)/np.sqrt(aleft.dot(aleft) * aright.dot(aright)))
+            cosa = aleft.dot(aright)/np.sqrt(aleft.dot(aleft) * aright.dot(aright))
+            try: theta = np.arccos(cosa)
+            except:
+                if cosa > 0: theta = 0
+                else: theta = np.pi
             return angledata[1] * (theta - angledata[0])**2 / 2
         
         def potential_dihedral(array1, array2, array3, array4, dihedraldata):
             a1 = np.cross((array2 - array1), (array3 - array2))
             a2 = np.cross((array3 - array2), (array4 - array3))
-            phi = np.arccos(a1.dot(a2)/np.sqrt(a1.dot(a1) * a2.dot(a2)))
+            cosa = a1.dot(a2)/np.sqrt(a1.dot(a1) * a2.dot(a2))
+            try: phi = np.arccos(cosa)
+            except:
+                if cosa > 0: phi = 0
+                else: phi = np.pi
             return np.sum([data[2]*np.cos(data[0]*phi - data[1]) for data in dihedraldata[1]])
         
         def potential_nonbond(array1, array2, nonbonddata):
@@ -365,6 +373,3 @@ class Computing:
                 Atoms(num, bondingmap)
         return Atoms.gettypelist()[:]
 
-
-if __name__ == "__main__":
-    mol = Molecule()
