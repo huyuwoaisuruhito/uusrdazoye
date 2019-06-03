@@ -19,6 +19,8 @@ class File_IO():
                 continue
             inp_f[i].append(l)
         
+        inp.close()
+        
         self.__M.set_charge(inp_f[2][0][0])
         self.__M.set_multiplicity(inp_f[2][0][0])
         atoms = self.__M.modify_atoms()
@@ -32,3 +34,19 @@ class File_IO():
             for j in range((len(l)-1)//2):
                 bonds[i][int(l[2*j+1])-1] = float(l[2*j+2])
                 bonds[int(l[2*j+1])-1][i] = float(l[2*j+2])
+    
+    def output_gaussian_file(self, path):
+        out = open(path, 'w')
+        out.writelines('\n\n0 1\n')
+
+        for a in self.__M.modify_atoms():
+            out.write(' {:<15s}'.format(a[0]) + ' ' + ' '.join(['{:>13s}'.format('{:+.8f}'.format(s)) for s in a[1:]]) + '\n')
+        
+        out.writelines('\n')
+
+        for i, b in enumerate(self.__M.modify_bonds()):
+            out.write(' %d '%(i) + ' '.join([str(j)+' '+str(bb) for j, bb in enumerate(b) if bb]) + '\n')
+        
+        out.writelines('\n')
+
+        out.close()

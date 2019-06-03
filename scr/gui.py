@@ -1,6 +1,9 @@
+import os
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from tkinter import filedialog
 
 from tkinter.scrolledtext import ScrolledText
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -20,16 +23,13 @@ class Main_windows(tk.Tk):
     '''主窗口类'''
 
     def __init__(self):
-        super().__init__()
-        self.wm_title("测试")
-        self.geometry("1200x820")
-        self.protocol("WM_DELETE_WINDOW", self.__quit)
 
-        self.Computer = None
-        self.Molecule = mol.Molecule()
-        self.fio = fio.File_IO(self, self.Molecule)
-        self.fio.input_gaussian_file('Gaussian_inp\\Arg.gjf')#testing
-        self.Molecule.auto_set_O()
+        self.pre_init()
+
+        super().__init__()
+        self.wm_title('测试')
+        self.geometry('1200x820')
+        self.protocol('WM_DELETE_WINDOW', self.__quit)
         
         self.__menu = _Main_menu(self)
         self.__dd_frame = _DD_frame(self)
@@ -40,9 +40,14 @@ class Main_windows(tk.Tk):
         self.ddd.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
         self._log.grid(row=0, column=1)
 
-        #self.Molecule.test()
-
         tk.mainloop()
+
+    def pre_init(self):
+        self.Computer = None
+        self.Molecule = mol.Molecule()
+        self.fio = fio.File_IO(self, self.Molecule)
+        #self.fio.input_gaussian_file('Gaussian_inp\\Arg.gjf')#testing
+        self.Molecule.auto_set_O()
     
     def open_bond_length_windows(self):
         if '_blw' in self.__dict__:
@@ -96,43 +101,57 @@ class _Main_menu:
         
         #文件
         filemenu = tk.Menu(self.menubar, tearoff=0)
-        filemenu.add_command(label="打开", command=self.file_open)
-        filemenu.add_command(label="新建", command=self.file_new)
-        filemenu.add_command(label="保存", command=self.file_save)
+        filemenu.add_command(label='打开', command=self.file_open)
+        filemenu.add_command(label='保存', command=self.file_save)
         filemenu.add_separator()
-        filemenu.add_command(label="退出", command=parent.quit)
+        filemenu.add_command(label='清空', command=self.file_new)
+        filemenu.add_separator()
+        filemenu.add_command(label='退出', command=self.parent.quit)
         
         #编辑
         editmenu = tk.Menu(self.menubar, tearoff=0)
-        editmenu.add_command(label="打开3D界面", command=self.__call_3d)
-        editmenu.add_command(label="自动调整原点", command=self.__auto_set_O)
+        editmenu.add_command(label='打开3D界面', command=self.__call_3d)
+        editmenu.add_command(label='自动调整原点', command=self.__auto_set_O)
         editmenu.add_separator()
-        editmenu.add_command(label="键长", command=self.parent.open_bond_length_windows)
-        editmenu.add_command(label="键角", command=self.parent.open_bond_angle_windows)
-        editmenu.add_command(label="二面角", command=self.parent.open_dihedral_angle_windows)
+        editmenu.add_command(label='键长', command=self.parent.open_bond_length_windows)
+        editmenu.add_command(label='键角', command=self.parent.open_bond_angle_windows)
+        editmenu.add_command(label='二面角', command=self.parent.open_dihedral_angle_windows)
 
         #计算
         compmenu = tk.Menu(self.menubar, tearoff=0)
-        compmenu.add_command(label="用MM优化分子构象", command=self.__com_MM)
+        compmenu.add_command(label='用MM优化分子构象', command=self.__com_MM)
+        editmenu.add_separator()
+        compmenu.add_command(label='暂停', command=self.__pulse_MM)
+        compmenu.add_command(label='继续', command=self.__continue_MM)
+        compmenu.add_command(label='终止', command=self.__stop_MM)
 
         #帮助
         helpmenu = tk.Menu(self.menubar, tearoff=0)
-        helpmenu.add_command(label="关于", command=self.help_about)
-        helpmenu.add_command(label="使用方法", command=self.help_operate)
+        helpmenu.add_command(label='关于', command=self.help_about)
+        helpmenu.add_command(label='使用方法', command=self.help_operate)
         
-        self.menubar.add_cascade(label="文件", menu=filemenu)
-        self.menubar.add_cascade(label="页面", menu=editmenu)
-        self.menubar.add_cascade(label="计算", menu=compmenu)
-        self.menubar.add_cascade(label="帮助", menu=helpmenu)
+        self.menubar.add_cascade(label='文件', menu=filemenu)
+        self.menubar.add_cascade(label='页面', menu=editmenu)
+        self.menubar.add_cascade(label='计算', menu=compmenu)
+        self.menubar.add_cascade(label='帮助', menu=helpmenu)
 
     def file_open(self):
-        pass
-    
+        default_dir = os.path.expandvars(r'%USERPROFILE%\Desktop')
+        inp_file = filedialog.askopenfilename(title='选择文件', initialdir=(default_dir), filetypes=(('All files', '.*'), ('Gaussian files', '.gjf')))
+        if inp_file!='':
+            self.parent.fio.input_gaussian_file(inp_file)
+            self.parent.Molecule.auto_set_O()
+            self.parent.event_generate("<<Upadate3DView>>")
+
     def file_new(self):
-        pass
+        self.parent.pre_init()
+        self.parent.event_generate("<<Upadate3DView>>")
     
     def file_save(self):
-        pass
+        default_dir = os.path.expandvars(r'%USERPROFILE%\Desktop')
+        out_file = filedialog.asksaveasfilename(title='选择文件', initialdir=(default_dir), initialfile='new.gjf',  defaultextension='.gjf', filetypes=(('Gaussian files', '.gjf'), ('Text files', '.txt')))
+        if out_file!='':
+            self.parent.fio.output_gaussian_file(out_file)
 
     def __com_MM(self):
         self.parent.Computer = comp.Computing(self.parent, self.parent.Molecule)
@@ -140,6 +159,15 @@ class _Main_menu:
             self.parent.Computer.run()
         except (AtomTypeError, DataTypeError) as error:
             self.parent.warning(error)
+    
+    def __pulse_MM(self):
+        pass
+    
+    def __continue_MM(self):
+        pass
+    
+    def __stop_MM(self):
+        pass
 
     def __auto_set_O(self):
         self.parent.Molecule.auto_set_O()
@@ -149,7 +177,7 @@ class _Main_menu:
         self.parent.open_3d_windows()
 
     def help_about(self):
-        messagebox.showinfo('关于', '作者：文亦质 \n 1800011702 \n verion 0.1')
+        messagebox.showinfo('关于', '作者：文亦质, 1800011702 \n 尚游皓，  \n verion 0.1')
 
     def help_operate(self):
         messagebox.showinfo()
@@ -162,8 +190,8 @@ class _DDD_windows(tk.Frame):
 
     def __init__(self, parent):
         super().__init__(parent)
-        #self.wm_title("3D视图")
-        #self.geometry("800x600")
+        #self.wm_title('3D视图')
+        #self.geometry('800x600')
         self._parent = parent
 
         self.plot = dp.DDD_plot()
