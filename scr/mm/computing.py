@@ -36,14 +36,14 @@ class Computing:
         self.__getdatas()
         
         self._forces = []
-        self._step = 0.01
+        self._step = 0.05
         self._potential = 0
         self._oldpotential = 0
         self.message = ""
         self._times = 0
         self._countmin = 0
         self._countstop = 0
-        self._jumpstep = 0.01
+        self._jumpstep = 0.03
         
     def run(self):
         self.__calc()
@@ -104,9 +104,12 @@ class Computing:
             a1 = np.cross((array2 - array1), (array3 - array2))
             a2 = np.cross((array3 - array2), (array4 - array3))
             cosa = a1.dot(a2)/np.sqrt(a1.dot(a1) * a2.dot(a2))
-            if abs(cosa) < 1: phi = np.arccos(cosa)
-            elif cosa > 0: phi = 0
-            else: phi = np.pi
+            if abs(cosa) < 1:
+                phi = np.arccos(cosa)
+            elif cosa > 0:
+                phi = 0
+            else:
+                phi = np.pi
             return np.sum([data[2]*np.cos(data[0]*phi - data[1]) for data in dihedraldata[1]])
         
         def potential_nonbond(array1, array2, nonbonddata):
@@ -127,7 +130,7 @@ class Computing:
             self._privpotential = self._potential
         else:
             print("potentials", self._potential, newpotential)
-            if newpotential < self._potential:
+            if newpotential < self._potential + 5:
                 self._step *= 1.2
                 self._potential = newpotential
                 self.sites = self._newsites[:]
@@ -135,11 +138,11 @@ class Computing:
                 self._step *= 0.5
                 self._countmin += 1
                 
-                if self._countmin > 4:
-                    if self._potential < self._privpotential:
+                '''if self._countmin > 4:
+                    if self._potential < self._privpotential + 50:
                         self._privpotential = self._potential
                         self._privsites = self.sites
-                        self._jumpstep = 0.01
+                        self._jumpstep = 0.03
                         self._countstop = 0
                     else:
                         self._countstop += 1
@@ -148,12 +151,13 @@ class Computing:
                     #maxforce = self._forces.max()
                     #indexs = np.around(self._forces / maxforce * 2, decimals=1) + np.ones((len(self.sites), 3))
                     #forces = np.random.random((len(self.sites), 3)) ** indexs * self._jumpstep
-                    forces = np.random.random((len(self.sites), 3)) * self._jumpstep
+
+                    forces = np.random.normal(0, 1, (len(self.sites), 3)) * 2.5 * self._jumpstep
                     self._newsites = self.sites + forces
                     
                     self._countmin = 0
                     self._step = 0.01
-                    return
+                    return'''
         
         #计算力（势能偏导）以得到一组新坐标
         t, dt = time.time(), time.time() - t
@@ -205,9 +209,10 @@ class Computing:
             rd = nonbonddata[0] / r
             return (12 * nonbonddata[1]*(rd**12 - rd**6) / r**2) * arrayr
         
-        forces = np.random.random((len(self.sites), 3)) * 10**-9
+        forces = np.zeros((len(self.sites), 3)) #10**-9
         t, dt = time.time(), time.time() - t
         print('F_Z:%f'%dt)
+
         for bond in self._bonds:
             forces[bond[0]] += fbond(bond[0], self.sites[bond[0]], self.sites[bond[1]], self._bonddatas[bond])
             forces[bond[1]] += fbond(bond[1], self.sites[bond[1]], self.sites[bond[0]], self._bonddatas[bond])
@@ -235,11 +240,14 @@ class Computing:
         t, dt = time.time(), time.time() - t
         print('d_NB:%f'%dt)
         
-        maxforce = forces.max() #max([np.sqrt(force.dot(force)) for force in forces])
-        if maxforce >= 5 * 10**-8:
-            self._forces = forces * (self._step / maxforce)
+        maxforce = max(forces.max(), -forces.min()) #max([np.sqrt(force.dot(force)) for force in forces])
+        if maxforce >= 0.77: #5 * 10**-8:
+            forces = forces * (self._step / maxforce)
         else:
-            self._forces = forces
+            forces = forces
+
+        thermal_forces = np.random.exponential(0.1, (len(self.sites), 3)) * 0.2 * 0.01 * (-1) ** np.random.randint(0, 2, 1)
+        self._forces = forces + thermal_forces
 
         self._newsites = self.sites + self._forces
         self._times += 1
