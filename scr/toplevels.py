@@ -10,7 +10,7 @@ def _select_style(type, vc1, vc2, __warning, func1, func2, *arg, **kw):
     if vc1.get() == '固定' and vc2.get() == '固定':
         __warning('不被支持的原子选择方式')
         return
-
+    '''
     if vc1.get() == '可调（仅原子）' and vc2.get() == '固定':
         func1(arg[-1], *arg[1:-1], arg[0], kw['raw']+kw['delta'])
     elif vc1.get() == '固定' and vc2.get() == '可调（仅原子）':
@@ -18,6 +18,15 @@ def _select_style(type, vc1, vc2, __warning, func1, func2, *arg, **kw):
     elif vc1.get() == '可调（仅原子）' and vc2.get() == '可调（仅原子）':
         func1(arg[-1], *arg[1:-1], arg[0], (kw['raw']+kw['delta']/2)*(-1)**type)
         func1(arg[0], *arg[1:-1], arg[-1], kw['raw']+kw['delta'])
+    '''
+
+    if vc1.get() == '可调（仅原子）' and vc2.get() == '固定':
+        func1(arg[-1], *arg[1:-1], arg[0], x = kw['raw']+kw['delta'], mul = 1, dmul= 1, **kw)
+    elif vc1.get() == '固定' and vc2.get() == '可调（仅原子）':
+        func1(arg[0], *arg[1:-1], arg[-1], x = kw['raw']+kw['delta'], mul = 1, dmul=-1, **kw)
+    elif vc1.get() == '可调（仅原子）' and vc2.get() == '可调（仅原子）':
+        func1(arg[-1], *arg[1:-1], arg[0], x = kw['raw']+kw['delta']/2, mul = 0.5, dmul= 0.5, **kw)
+        func1(arg[0], *arg[1:-1], arg[-1], x = kw['raw']+kw['delta'], mul = 1, dmul=-0.5, **kw)
 
     elif vc1.get() == '可调（基团）' and vc2.get() == '固定':
         func2(arg[-1], *arg[1:-1], arg[0], x = kw['raw']+kw['delta'], mul = 1, dmul= 1, **kw)
@@ -83,7 +92,7 @@ class _Bond_windows(tk.Toplevel):
     def __modify_bond_length(self, Molecule):
         try:
             raw = Molecule.get_bond_length(self.a.get(), self.b.get())
-            _select_style(0, self.vc1, self.vc2, self.__warning, Molecule.modify_bond_length, 
+            _select_style(0, self.vc1, self.vc2, self.__warning, Molecule.modify_bond_length_A, 
                         Molecule.modify_bond_length_G, self.a.get(), self.b.get(),
                         raw = raw, delta = self.l.get()-raw)
             self.parent.ddd.re_plot(self.Molecule)
@@ -184,7 +193,7 @@ class _Bond_angle_windows(tk.Toplevel):
         f2 = ttk.LabelFrame(self, padding=5, text='键角'); f2.grid(row=1, column=0)
         l4 = ttk.Label(f2, text='键角：'); l4.grid(row=0, column=0)
         e4 = ttk.Entry(f2, textvariable=self.angle); e4.grid(row=0, column=1)
-        self.s1 = tk.Scale(f2, label='键角:', resolution=0.1, from_=0.1, to=180, orient=tk.HORIZONTAL, length=250, command=self.__change_scale)
+        self.s1 = tk.Scale(f2, label='键角:', resolution=0.1, from_=1, to=180, orient=tk.HORIZONTAL, length=250, command=self.__change_scale)
         self.s1.grid(row=1, columnspan=2)
 
         f3 = ttk.Frame(self, padding=5); f3.grid(row=2, column=0)
@@ -193,8 +202,8 @@ class _Bond_angle_windows(tk.Toplevel):
 
     def __modify_bond_angle(self, Molecule):
         try:
-            raw = Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())
-            _select_style(0, self.vc1, self.vc3, self.__warning, Molecule.modify_bond_angle, 
+            raw = Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get(), 0)
+            _select_style(0, self.vc1, self.vc3, self.__warning, Molecule.modify_bond_angle_A, 
                         Molecule.modify_bond_angle_G, self.a.get(), self.o.get(), self.b.get(), 
                         raw = raw, delta = self.angle.get()/180*np.pi - raw)
             self.parent.ddd.re_plot(self.Molecule)
@@ -230,7 +239,8 @@ class _Bond_angle_windows(tk.Toplevel):
         self.destroy()
 
     def __set_init(self):
-        self.angle.set(self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())/np.pi*180)
+        a = self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get(), 0)/np.pi*180
+        self.angle.set(a)
         self.s1.set(self.angle.get())
 
     def select(self, i):
@@ -305,7 +315,7 @@ class _Dihedral_angle_windows(tk.Toplevel):
     def __modify_dihedral_angle(self, Molecule):
         try:
             raw = Molecule.get_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get())
-            _select_style(0, self.vc1, self.vc4, self.__warning, Molecule.modify_dihedral_angle, 
+            _select_style(0, self.vc1, self.vc4, self.__warning, Molecule.modify_dihedral_angle_A, 
                         Molecule.modify_dihedral_angle_G, self.a.get(), self.b.get(), self.c.get(), self.d.get(), 
                         raw = raw, delta = self.angle.get()/180*np.pi - raw)
             self.parent.ddd.re_plot(self.Molecule)

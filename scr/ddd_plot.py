@@ -36,7 +36,7 @@ class DDD_plot():
         self.ax.text(0, 1, 0, "y")
         self.ax.text(0, 0, 1, "z")
 
-        _max =max([max([abs(ll) for ll in l]) for l in zip(self.ax.get_xlim3d(), self.ax.get_ylim3d(), self.ax.get_zlim3d())])
+        _max =max([max([abs(ll) for ll in l]) for l in zip(self.ax.get_xlim3d(), self.ax.get_ylim3d(), self.ax.get_zlim3d())]+[3])
         self.ax.set_xlim3d(-_max, _max)
         self.ax.set_ylim3d(-_max, _max)
         self.ax.set_zlim3d(-_max, _max)
