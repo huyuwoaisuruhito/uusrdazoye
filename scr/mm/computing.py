@@ -9,6 +9,7 @@ import time
 import numpy as np
 from scr.mm.bonding_information import Bondingmaps
 from scr.mm.atomtype import Atoms
+import copy
 
 
 class DataTypeError(TypeError):
@@ -19,8 +20,8 @@ class Computing:
         self._bondingmap = Bondingmaps(molecule)
         
         self._atomtypes = Computing.__gettypes(self._bondingmap)
-        self.sites = [np.array(list(map(lambda lenth: lenth, i[1:]))) for i in self._bondingmap.sites]
-        self._newsites = self.sites[:]
+        self.sites = np.array([list(map(lambda lenth: lenth, i[1:])) for i in self._bondingmap.sites])
+        self._newsites = copy.deepcopy(self.sites)
         
         self._parent = mainwindow
         self._molecule = molecule
@@ -36,14 +37,16 @@ class Computing:
         self.__getdatas()
         
         self._forces = []
-        self._step = 0.05
+        self._step = 0.08
         self._potential = 0
         self._oldpotential = 0
         self.message = ""
         self._times = 0
         self._countmin = 0
         self._countstop = 0
-        self._jumpstep = 0.03
+        self._jumpstep = 0.01
+        self._newstart = True
+        self._dealmax = False
         
     def run(self):
         self.__calc()
@@ -56,7 +59,7 @@ class Computing:
         while True:
             
             self.__calc()
-            if self._countstop > 30:
+            if self._countstop > 19:
                 break
             
             if self._times % 5 == 1:
@@ -70,6 +73,8 @@ class Computing:
                 self._parent.event_generate("<<Upadate3DView>>")
                 self._oldpotential = self._potential
         
+        self.sites = self._privsites
+        self._potential = self._privpotential
         self.__printfinish()
         self._parent.event_generate("<<UpadateLog>>")
         self._parent.event_generate("<<Upadate3DView>>")
@@ -104,12 +109,9 @@ class Computing:
             a1 = np.cross((array2 - array1), (array3 - array2))
             a2 = np.cross((array3 - array2), (array4 - array3))
             cosa = a1.dot(a2)/np.sqrt(a1.dot(a1) * a2.dot(a2))
-            if abs(cosa) < 1:
-                phi = np.arccos(cosa)
-            elif cosa > 0:
-                phi = 0
-            else:
-                phi = np.pi
+            if abs(cosa) < 1: phi = np.arccos(cosa)
+            elif cosa > 0: phi = 0
+            else: phi = np.pi
             return np.sum([data[2]*np.cos(data[0]*phi - data[1]) for data in dihedraldata[1]])
         
         def potential_nonbond(array1, array2, nonbonddata):
@@ -117,33 +119,62 @@ class Computing:
             rd = nonbonddata[0] / np.sqrt(arrayr.dot(arrayr))
             return nonbonddata[1]*(rd**12 - 2*rd**6)
         
-        newpotential = np.sum([potential_bond(self._newsites[b[0]], self._newsites[b[1]], self._bonddatas[b]) for b in self._bonds])
+        bond_potentials = [(potential_bond(self._newsites[b[0]], self._newsites[b[1]], self._bonddatas[b]), b) for b in self._bonds]
+        angle_potentials = [(potential_angle(self._newsites[ag[0]], self._newsites[ag[1]], self._newsites[ag[2]], self._angledatas[ag]), ag)
+                           for ag in self._angles]
+        dihedral_potentials = [(potential_dihedral(*[self._newsites[i] for i in dh], self._dihedraldatas[dh]), dh)
+                           for dh in self._dihedrals]
+        nonbond_potentials = [(potential_nonbond(self._newsites[nb[0]], self._newsites[nb[1]], self._nonbonddatas[nb]), nb)
+                            for nb in self._nonbonds]
+        
+        newpotential = np.sum([e[0] for e in bond_potentials])
+        newpotential += np.sum([e[0] for e in angle_potentials])
+        newpotential += np.sum([e[0] for e in dihedral_potentials])
+        newpotential += np.sum([e[0] for e in nonbond_potentials])
+        
+        """newpotential = np.sum([potential_bond(self._newsites[b[0]], self._newsites[b[1]], self._bonddatas[b]) for b in self._bonds])
+        
         newpotential += np.sum([potential_angle(self._newsites[ag[0]], self._newsites[ag[1]], self._newsites[ag[2]], self._angledatas[ag])
                            for ag in self._angles])
         newpotential += np.sum([potential_dihedral(*[self._newsites[i] for i in dh], self._dihedraldatas[dh])
                            for dh in self._dihedrals])
         newpotential += np.sum([potential_nonbond(self._newsites[nb[0]], self._newsites[nb[1]], self._nonbonddatas[nb])
-                            for nb in self._nonbonds])
+                            for nb in self._nonbonds])"""
         
-        if self._times == 0:
+        """print([(potential_bond(self._newsites[b[0]], self._newsites[b[1]], self._bonddatas[b]), b) for b in self._bonds])
+        print([(potential_angle(self._newsites[ag[0]], self._newsites[ag[1]], self._newsites[ag[2]], self._angledatas[ag]), ag)
+                           for ag in self._angles])
+        print([(potential_dihedral(*[self._newsites[i] for i in dh], self._dihedraldatas[dh]), dh)
+                           for dh in self._dihedrals])
+        print([(potential_nonbond(self._newsites[nb[0]], self._newsites[nb[1]], self._nonbonddatas[nb]), nb)
+                            for nb in self._nonbonds])
+        i = 1"""
+        
+        
+        if self._newstart:
             self._potential = newpotential
-            self._privpotential = self._potential
+            if self._times == 0:
+                self._privpotential = self._potential
+            self._newstart = False
         else:
             print("potentials", self._potential, newpotential)
-            if newpotential < self._potential + 5:
-                self._step *= 1.2
+            if newpotential < self._potential:
+                self._step *= 1.5
                 self._potential = newpotential
                 self.sites = self._newsites[:]
             else:
-                self._step *= 0.5
+                self._step *= 0.3
                 self._countmin += 1
                 
-                '''if self._countmin > 4:
-                    if self._potential < self._privpotential + 50:
+                if self._countmin > 4:
+                    if self._potential < self._privpotential:
+                        #if self._potential < self._privpotential:
+                        self._countstop = 0
+                        print("%*&^$&$%#$&*^(*^)*&*^%*^")
+                        #if np.random.random() < np.exp((self._privpotential - self._potential) / 5):
                         self._privpotential = self._potential
                         self._privsites = self.sites
                         self._jumpstep = 0.03
-                        self._countstop = 0
                     else:
                         self._countstop += 1
                         self._jumpstep *= 1.01
@@ -151,13 +182,25 @@ class Computing:
                     #maxforce = self._forces.max()
                     #indexs = np.around(self._forces / maxforce * 2, decimals=1) + np.ones((len(self.sites), 3))
                     #forces = np.random.random((len(self.sites), 3)) ** indexs * self._jumpstep
-
-                    forces = np.random.normal(0, 1, (len(self.sites), 3)) * 2.5 * self._jumpstep
-                    self._newsites = self.sites + forces
+                    if 3 < self._countstop < 5:
+                        self._dealmax = True
+                        
+                    else:
+                        forces = np.random.random((len(self.sites), 3)) * self._jumpstep
+                        self._newsites = self.sites + forces
                     
-                    self._countmin = 0
-                    self._step = 0.01
-                    return'''
+                        if self._countstop > 6:
+                            dihedral = self._dihedrals[np.random.randint(1, len(self._dihedrals))]
+                            dh_angle = self._molecule.get_dihedral_angle(*dihedral) + np.random.random() * 0.15
+                            self._molecule.modify_dihedral_angle(*dihedral, dh_angle)
+                            self._newsites = np.array([list(map(lambda lenth: lenth, i[1:])) for i in self._molecule.get_atoms()])
+                            self._newstart = True
+                            print("#改变二面角\r\n\r\n", self._countstop)
+                    
+                        self._countmin = 0
+                        self._step = 0.08
+                        self._times += 1
+                        return
         
         #计算力（势能偏导）以得到一组新坐标
         t, dt = time.time(), time.time() - t
@@ -209,45 +252,72 @@ class Computing:
             rd = nonbonddata[0] / r
             return (12 * nonbonddata[1]*(rd**12 - rd**6) / r**2) * arrayr
         
-        forces = np.zeros((len(self.sites), 3)) #10**-9
-        t, dt = time.time(), time.time() - t
-        print('F_Z:%f'%dt)
-
-        for bond in self._bonds:
+        def act_fbond(bond):
+            nonlocal forces
             forces[bond[0]] += fbond(bond[0], self.sites[bond[0]], self.sites[bond[1]], self._bonddatas[bond])
             forces[bond[1]] += fbond(bond[1], self.sites[bond[1]], self.sites[bond[0]], self._bonddatas[bond])
-        t, dt = time.time(), time.time() - t
-        print('d_BL:%f'%dt)
         
-        for angle in self._angles:
+        def act_fangle(angle):
+            nonlocal forces
             forces[angle[0]] += fangle_s(angle[0], *[self.sites[at] for at in angle], self._angledatas[angle])
             forces[angle[2]] += fangle_s(angle[2], *[self.sites[at] for at in reversed(angle)], self._angledatas[angle])
             forces[angle[1]] += fangle_c(angle[1], *[self.sites[at] for at in angle], self._angledatas[angle])
-        t, dt = time.time(), time.time() - t
-        print('d_BA:%f'%dt)
-
-        for dh in self._dihedrals:
+        
+        def act_fdihedral(dh):
+            nonlocal forces
             forces[dh[0]] += fdihedral_s(dh[0], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
             forces[dh[3]] += fdihedral_s(dh[3], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
             forces[dh[1]] += fdihedral_c(dh[1], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
             forces[dh[2]] += fdihedral_c(dh[2], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
-        t, dt = time.time(), time.time() - t
-        print('d_DH:%f'%dt)
         
-        for nonbond in self._nonbonds:
+        def act_fnonbond(nonbond):
+            nonlocal forces
             forces[nonbond[0]] += fnonbond(nonbond[0], *[self.sites[at] for at in nonbond], self._nonbonddatas[nonbond])
             forces[nonbond[1]] += fnonbond(nonbond[1], *[self.sites[at] for at in reversed(nonbond)], self._nonbonddatas[nonbond])
-        t, dt = time.time(), time.time() - t
-        print('d_NB:%f'%dt)
+            
+        forces = np.random.random((len(self.sites), 3)) * 0.01
+        if self._dealmax:    #处理当分子处于较稳定极小值时存在的异常部分   strange((potential, block), type)
+            self._dealmax = False
+            
+            strange_bond = (max(bond_potentials), 0)
+            strange_angle = (max(angle_potentials), 1)
+            strange_dihedral = (max(dihedral_potentials), 2) if dihedral_potentials else ((0, 0), 0)
+            strange_nonbond = (max(nonbond_potentials), 3) if nonbond_potentials else ((0, 0), 0)
+            strange = max([strange_bond, strange_angle, strange_dihedral, strange_nonbond])
+            funcs = [act_fbond, act_fangle, act_fdihedral, act_fnonbond]
+            
+            if strange[0][0] < 1.0:
+                return
+            funcs[strange[1]](strange[0][1])
         
-        maxforce = max(forces.max(), -forces.min()) #max([np.sqrt(force.dot(force)) for force in forces])
-        if maxforce >= 0.77: #5 * 10**-8:
-            forces = forces * (self._step / maxforce)
         else:
-            forces = forces
+            t, dt = time.time(), time.time() - t
+            print('F_Z:%f'%dt)
+            for bond in self._bonds:
+                act_fbond(bond)
+            t, dt = time.time(), time.time() - t
+            print('d_BL:%f'%dt)
+        
+            for angle in self._angles:
+                act_fangle(angle)
+            t, dt = time.time(), time.time() - t
+            print('d_BA:%f'%dt)
 
-        thermal_forces = np.random.exponential(0.1, (len(self.sites), 3)) * 0.2 * 0.01 * (-1) ** np.random.randint(0, 2, 1)
-        self._forces = forces + thermal_forces
+            for dh in self._dihedrals:
+                act_fdihedral(dh)
+            t, dt = time.time(), time.time() - t
+            print('d_DH:%f'%dt)
+        
+            for nonbond in self._nonbonds:
+                act_fnonbond(nonbond)
+            t, dt = time.time(), time.time() - t
+            print('d_NB:%f'%dt)
+        
+        maxforce = forces.max() #max([np.sqrt(force.dot(force)) for force in forces])
+        if maxforce >= 5 * 10**-6:
+            self._forces = forces * (self._step / maxforce)
+        else:
+            self._forces = forces
 
         self._newsites = self.sites + self._forces
         self._times += 1
