@@ -106,9 +106,7 @@ class _Bond_windows(tk.Toplevel):
 
     def __commit(self):
         self.__modify_bond_length(self.parent.Molecule)
-        self.parent.ddd.plot.clear_high_light()
-        self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
+        self.__quit()
     
     def __warning(self, t):
         global Flag
@@ -123,8 +121,8 @@ class _Bond_windows(tk.Toplevel):
     def __quit(self):
         self.parent.ddd.plot.clear_high_light()
         self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
         del self.parent._blw
+        self.destroy()
     
     def __set_init(self):
         self.bl.set(self.parent.Molecule.get_bond_level(self.a.get(), self.b.get()))
@@ -213,9 +211,7 @@ class _Bond_angle_windows(tk.Toplevel):
 
     def __commit(self):
         self.__modify_bond_angle(self.parent.Molecule)
-        self.parent.ddd.plot.clear_high_light()
-        self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
+        self.__quit()
 
     def __warning(self, t):
         global Flag
@@ -230,8 +226,8 @@ class _Bond_angle_windows(tk.Toplevel):
     def __quit(self):
         self.parent.ddd.plot.clear_high_light()
         self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
         del self.parent._baw
+        self.destroy()
 
     def __set_init(self):
         self.angle.set(self.parent.Molecule.get_bond_angle(self.a.get(), self.o.get(), self.b.get())/np.pi*180)
@@ -326,9 +322,7 @@ class _Dihedral_angle_windows(tk.Toplevel):
 
     def __commit(self):
         self.__modify_dihedral_angle(self.parent.Molecule)
-        self.parent.ddd.plot.clear_high_light()
-        self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
+        self.__quit()
 
     def __warning(self, t):
         global Flag
@@ -343,8 +337,8 @@ class _Dihedral_angle_windows(tk.Toplevel):
     def __quit(self):
         self.parent.ddd.plot.clear_high_light()
         self.parent.ddd.re_plot(self.parent.Molecule)
-        self.destroy()
         del self.parent._daw
+        self.destroy()
 
     def __set_init(self):
         self.angle.set(self.parent.Molecule.get_dihedral_angle(self.a.get(), self.b.get(), self.c.get(), self.d.get())/np.pi*180)
