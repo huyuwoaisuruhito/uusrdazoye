@@ -45,7 +45,7 @@ class File_IO():
         out.writelines('\n')
 
         for i, b in enumerate(self.__M.modify_bonds()):
-            out.write(' %d '%(i) + ' '.join([str(j)+' '+str(bb) for j, bb in enumerate(b) if bb]) + '\n')
+            out.write(' %d '%(i+1) + ' '.join([str(j+1) + ' ' + '{:.1f}'.format(b[j]) for j in b if i<j]) + '\n')
         
         out.writelines('\n')
 
