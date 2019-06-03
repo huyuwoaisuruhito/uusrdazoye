@@ -47,16 +47,27 @@ class Computing:
         self._jumpstep = 0.01
         self._newstart = True
         self._dealmax = False
-        
+        self._suspend = False
+    
+    def suspend(self):
+        self._suspend = True
+    
+    def stop(self):
+        self._countstop = 50
+    
     def run(self):
-        self.__calc()
-        self._oldpotential = self._potential
         self.__printstart()
         self._parent.event_generate("<<UpadateLog>>")
         self._parent.event_generate("<<Upadate3DView>>")
+        self._suspend = False
         t = time.time()
         
         while True:
+            if self._suspend:
+                self.__printsuspend()
+                self._parent.event_generate("<<UpadateLog>>")
+                self._parent.event_generate("<<Upadate3DView>>")
+                return
             
             self.__calc()
             if self._countstop > 19:
@@ -80,6 +91,9 @@ class Computing:
         self._parent.event_generate("<<Upadate3DView>>")
     
     def __printstart(self):
+        if self._suspend:
+            self.message = "---------------------------------------\n\n继续计算\n\n---------------------------------------"
+            return
         self.message = "---------------------------------------\n\n开始计算\n\n---------------------------------------"
     
     def __printstep(self):
@@ -88,6 +102,9 @@ class Computing:
     
     def __printfinish(self):
         self.message = "\n总能量:\t{0:.4f} kJ/mol\n共计算 {1:d} 次\n\n---------------------------------------\n\n计算结束\n\n---------------------------------------\n\n".format(self._potential, self._times)
+    
+    def __printsuspend(self):
+        self.message = "\当前能量:\t{0:.4f} kJ/mol\n当前已计算 {1:d} 次\n\n---------------------------------------\n\n计算暂停\n\n---------------------------------------\n\n".format(self._potential, self._times)
     
     def __calc(self):
         #计算新坐标对应的势能
@@ -155,6 +172,7 @@ class Computing:
             self._potential = newpotential
             if self._times == 0:
                 self._privpotential = self._potential
+                self._oldpotential = self._potential
             self._newstart = False
         else:
             print("potentials", self._potential, newpotential)
@@ -192,7 +210,7 @@ class Computing:
                         if self._countstop > 6:
                             dihedral = self._dihedrals[np.random.randint(1, len(self._dihedrals))]
                             dh_angle = self._molecule.get_dihedral_angle(*dihedral) + np.random.random() * 0.15
-                            self._molecule.modify_dihedral_angle(*dihedral, dh_angle)
+                            self._molecule.modify_dihedral_angle_A(*dihedral, dh_angle)
                             self._newsites = np.array([list(map(lambda lenth: lenth, i[1:])) for i in self._molecule.get_atoms()])
                             self._newstart = True
                             print("#改变二面角\r\n\r\n", self._countstop)

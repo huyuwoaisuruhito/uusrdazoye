@@ -161,13 +161,13 @@ class _Main_menu:
             self.parent.warning(error)
     
     def __pulse_MM(self):
-        pass
+        self.parent.Computer.suspend()
     
     def __continue_MM(self):
-        pass
+        self.parent.Computer.run()
     
     def __stop_MM(self):
-        pass
+        self.parent.Computer.stop()
 
     def __auto_set_O(self):
         self.parent.Molecule.auto_set_O()
