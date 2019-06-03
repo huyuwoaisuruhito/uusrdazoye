@@ -60,7 +60,7 @@ class Molecule():
         ON = np.cross(OA, OB)
         ANGLE = np.arccos( OA.dot(OB)/(np.sqrt(OA.dot(OA)) * np.sqrt(OB.dot(OB))) )
 
-        if f:
+        if f==1: # 0 to 2pai
             if np.isnan(ANGLE):
                 return 0
             elif r_NN.dot(ON)>=0:
@@ -69,15 +69,12 @@ class Molecule():
                 return 2*np.pi - ANGLE
             else:
                 return
-        else:
+        elif f==0: #0 to pai
             if np.isnan(ANGLE):
                 return 0
-            elif r_NN.dot(ON)>=0:
-                return ANGLE
-            elif r_NN.dot(ON)<0:
-                return -ANGLE
             else:
-                return
+                return ANGLE
+
 
     def get_dihedral_angle(self, a, b, c, d):
         r_NN = np.array([0, 0, -1])
@@ -115,54 +112,6 @@ class Molecule():
             except KeyError:
                 pass
 
-    def modify_bond_length(self, a, b, l):
-        if a == b:
-            return
-        self.__atoms[b] = self.__atoms[b][0:1] + list(map(lambda A, B:A + (B-A)*l/self.get_bond_length(a, b), self.__atoms[a][1:], self.__atoms[b][1:]))
-
-    def modify_bond_angle(self, a, o, b, angle):
-        if len(set([a, o, b]))!=3:
-            return
-        k = tuple([a, o, b])
-        OA = np.array(self.__atoms[a][1:]) - np.array(self.__atoms[o][1:])
-        OB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[o][1:])
-        ON = self.__N_AOB.get(k, np.cross(OA, OB))
-        OH = np.cross(ON, OA)
-        D_OA = [l/self.get_bond_length(o, a) for l in OA]
-        D_OH = [l/np.sqrt(sum(map(lambda a: a**2, OH))) for l in OH]
-        L_OB = self.get_bond_length(o, b)
-        New_OB = list(map(sum, zip(map(lambda x: x*L_OB*np.cos(angle), D_OA), map(lambda x: x*L_OB*np.sin(angle), D_OH))))
-        if not np.isnan(L_OB) and not any([np.isnan(x) for x in D_OA]) and not any([np.isnan(x) for x in D_OH]):
-            self.__atoms[b] = self.__atoms[b][0:1] + list(map(sum, zip(New_OB, self.__atoms[o][1:])))
-            self.__N_AOB[k] = self.__N_AOB.get(k, ON)
-        else:
-            raise RuntimeWarning
-
-    def modify_dihedral_angle(self, a, b, c, d, angle):
-        if len(set([a, b, c, d]))!=4:
-            return
-        AB = np.array(self.__atoms[b][1:]) - np.array(self.__atoms[a][1:])
-        BC = np.array(self.__atoms[c][1:]) - np.array(self.__atoms[b][1:])
-        CD = np.array(self.__atoms[d][1:]) - np.array(self.__atoms[c][1:])
-        ANGLE = np.arccos( CD.dot(BC)/(np.sqrt(CD.dot(CD)) * np.sqrt(BC.dot(BC))) )
-        N_ABC = np.cross(AB, BC)
-        OH = np.cross(N_ABC, BC)
-        D_N_ABC = [l/np.sqrt(sum(map(lambda a: a**2, N_ABC))) for l in N_ABC]
-        D_OH = [l/np.sqrt(sum(map(lambda a: a**2, OH))) for l in OH]
-        D_BC = [l/np.sqrt(sum(map(lambda a: a**2, BC))) for l in BC]
-        N_P = list(map(sum, zip(map(lambda x: x*np.cos(angle), D_N_ABC), map(lambda x: x*np.sin(angle), D_OH))))
-        New_CD = list(map(
-            sum, zip(
-                map(lambda x: x*self.get_bond_length(c, d)*np.sin(ANGLE), np.cross(D_BC, N_P)), 
-                map(lambda x: x*self.get_bond_length(c, d)*np.cos(ANGLE), D_BC)
-            )
-        ))
-        if not any([np.isnan(x) for x in New_CD]):
-            self.__atoms[d] = self.__atoms[d][0:1] + list(map(sum, zip(New_CD, self.__atoms[c][1:])))
-            self.__N_AOB = {}
-        else:
-            raise RuntimeWarning
-
     def __get_unconnected_atom(self, a, b):
         unc_atom = set()
 
@@ -185,22 +134,11 @@ class Molecule():
         
         return list(unc_atom) + [b]
 
-    def modify_bond_length_G(self, a, b, **kw):
-        if a == b:
-            return
-        l = kw['x']
-        b_group = self.__get_unconnected_atom(a, b)
-        for b_g in b_group:
-            BL = self.get_bond_length(a, b)
-            d_AB = list(map(lambda A, B: (B-A)*(l-BL)/BL, self.__atoms[a][1:], self.__atoms[b][1:]))
-            self.__atoms[b_g] = self.__atoms[b_g][0:1] + list(map(sum, zip(self.__atoms[b_g][1:], d_AB)))
-
     def __get_ritation_matrix(self, v0, v1, theta):
         a, b, c = v0
         u, v, w = v1
         l = np.sqrt(sum(map(lambda x: x**2, (u, v, w))))
         u, v, w = map(lambda x: x/l, (u, v, w))
-        print(v0, (u,v,w), '\ntheta:', theta)
 
         uu, uv, uw = u * u, u * v, u * w
         vv, vw, ww = v * v, v * w, w * w
@@ -235,7 +173,28 @@ class Molecule():
         
         return np.matrix(m)
 
-    def modify_bond_angle_G(self, a, o, b, **kw):
+    def __modify_bond_length(self, a, b, f, **kw):
+        if a == b:
+            return
+        l = kw['x']
+
+        if f:
+            b_group = self.__get_unconnected_atom(a, b)
+        else:
+            b_group = (b,)
+
+        for b_g in b_group:
+            BL = self.get_bond_length(a, b)
+            d_AB = list(map(lambda A, B: (B-A)*(l-BL)/BL, self.__atoms[a][1:], self.__atoms[b][1:]))
+            self.__atoms[b_g] = self.__atoms[b_g][0:1] + list(map(sum, zip(self.__atoms[b_g][1:], d_AB)))
+    
+    def modify_bond_length_A(self, a, b, **kw):
+        self.__modify_bond_length(a, b, 0, **kw)
+
+    def modify_bond_length_G(self, a, b, **kw):
+        self.__modify_bond_length(a, b, 1, **kw)
+
+    def __modify_bond_angle(self, a, o, b, f, **kw):
         if len(set([a, o, b]))!=3:
             return
         delta_angle = kw['delta'] * kw['mul']
@@ -244,31 +203,54 @@ class Molecule():
         ON = np.cross(OA, OB)
         M = self.__get_ritation_matrix(self.__atoms[o][1:], ON, delta_angle)
 
-        b_group = self.__get_unconnected_atom(a, b)
+        if f:
+            b_group = self.__get_unconnected_atom(a, b)
+        else:
+            b_group = (b,)
+        
         for b_g in b_group:
             pos = np.matrix(self.__atoms[b_g][1:]+[1]) * M
             self.__atoms[b_g] = self.__atoms[b_g][0:1] + list(pos.A[0][:-1])
     
-    def modify_dihedral_angle_G(self, a, b, c, d, **kw):
+    def modify_bond_angle_A(self, a, o, b, **kw):
+        self.__modify_bond_angle(a, o, b, 0, **kw)
+    
+    def modify_bond_angle_G(self, a, o, b, **kw):
+        self.__modify_bond_angle(a, o, b, 1, **kw)
+    
+    def __modify_dihedral_angle(self, a, b, c, d, f, **kw):
         if len(set([a, b, c, d]))!=4:
             return
         delta_angle = kw['delta']
+
         while delta_angle>np.pi or delta_angle<-np.pi:
             if delta_angle>0:
                 delta_angle -= 2*np.pi
             elif delta_angle<0:
                 delta_angle += 2*np.pi
+        
         delta_angle *= kw['dmul']
         BC = np.array(self.__atoms[c][1:]) - np.array(self.__atoms[b][1:])
         M = self.__get_ritation_matrix(self.__atoms[b][1:], BC, delta_angle)
 
-        if kw['dmul']>0:
-            b_group = self.__get_unconnected_atom(c, b)
+        if f:
+            if kw['dmul']>0:
+                b_group = self.__get_unconnected_atom(c, b)
+            else:
+                b_group = self.__get_unconnected_atom(b, c)
         else:
-            b_group = self.__get_unconnected_atom(b, c)
+            b_group = (d,)
+
         for b_g in b_group:
             pos = np.matrix(self.__atoms[b_g][1:]+[1]) * M
             self.__atoms[b_g] = self.__atoms[b_g][0:1] + list(pos.A[0][:-1])
+    
+    def modify_dihedral_angle_A(self, a, b, c, d, **kw):
+        self.__modify_dihedral_angle(a, b, c, d, 0, **kw)
+    
+    def modify_dihedral_angle_G(self, a, b, c, d, **kw):
+        self.__modify_dihedral_angle(a, b, c, d, 1, **kw)
+
 
     def auto_set_O(self):
         delta = [0, 0, 0]
@@ -291,9 +273,3 @@ class Molecule():
 
     def add_bond(self, a, b):
         pass
-
-    def test(self):
-        for i in range(360):
-            self.modify_bond_angle(0, 1, 2, np.pi*i/18)
-            #self.modify_dihedral_angle(2, 0, 1, 3, np.pi*i/18 - np.pi)
-            print(self.__atoms[3][1:])

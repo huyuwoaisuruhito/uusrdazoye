@@ -22,22 +22,23 @@ class Main_windows(tk.Tk):
     def __init__(self):
         super().__init__()
         self.wm_title("测试")
-        #self.geometry("1000x600")
+        self.geometry("1200x820")
+        self.protocol("WM_DELETE_WINDOW", self.__quit)
 
         self.Computer = None
         self.Molecule = mol.Molecule()
         self.fio = fio.File_IO(self, self.Molecule)
-        self.fio.input_gaussian_file('Gaussian_inp\\flat.gjf')#testing
+        self.fio.input_gaussian_file('Gaussian_inp\\Arg.gjf')#testing
         self.Molecule.auto_set_O()
         
         self.__menu = _Main_menu(self)
         self.__dd_frame = _DD_frame(self)
         self.ddd = _DDD_windows(self)
         self._log = Log(self)
-        self.columnconfigure(0, weight=3)
+        self.columnconfigure(0, weight=4)
         self.columnconfigure(1, weight=1)
         self.ddd.grid(row=0, column=0, sticky=tk.N+tk.S+tk.W+tk.E)
-        self._log.grid(row=0, column=1, sticky=tk.N+tk.S+tk.W+tk.E)
+        self._log.grid(row=0, column=1)
 
         #self.Molecule.test()
 
@@ -76,6 +77,9 @@ class Main_windows(tk.Tk):
     
     def warning(self, t):
         messagebox.showinfo('警告', t)
+    
+    def __quit(self):
+        exit()
 
 
 class _Main_menu:
@@ -229,7 +233,7 @@ class Log(tk.Frame):
         super().__init__(parent)
 
         self.__label = tk.Label(self, text='Log')
-        self.__text = tk.scrolledtext.ScrolledText(self, width=40, height=40, state = tk.DISABLED)
+        self.__text = tk.scrolledtext.ScrolledText(self, width=40, height=60, state = tk.DISABLED)
         self.__label.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         self.__text.grid(row=1, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         self._parent = parent
