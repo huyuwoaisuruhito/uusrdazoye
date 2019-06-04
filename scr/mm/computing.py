@@ -164,12 +164,13 @@ class Computing:
                 self._step *= 1.2
                 self._potential = newpotential
                 self.sites = self._newsites[:]
+                self._countmin = 0
             else:
                 self._step *= 0.2
                 self._countmin += 1
                 
                 #添加随机过程以尽量减少停留在不稳定极小值点的可能性
-                if self._countmin > 4:
+                if self._countmin >= 3:
                     if self._potential < self._privpotential:
                         #if self._potential < self._privpotential:
                         self._countstop = 0
