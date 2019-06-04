@@ -80,10 +80,14 @@ class Computing:
                 for i, site in enumerate(self.sites):
                     atomsites[i][1:] = list(site)
                 
+                self._oldpotential = self._potential
+                if self._times == 1:
+                    continue
+                
                 self.__printstep()
                 self._parent.event_generate("<<UpadateLog>>")
                 self._parent.event_generate("<<Upadate3DView>>")
-                self._oldpotential = self._potential
+                
         
         self.sites = self._privsites
         self._potential = self._privpotential
@@ -171,20 +175,15 @@ class Computing:
                 
                 #添加随机过程以尽量减少停留在不稳定极小值点的可能性
                 if self._countmin >= 3:
-                    if self._potential < self._privpotential:
-                        #if self._potential < self._privpotential:
+                    if self._potential < self._privpotential + 1:
                         self._countstop = 0
-                        #if np.random.random() < np.exp((self._privpotential - self._potential) / 5):
                         self._privpotential = self._potential
                         self._privsites = self.sites
                         self._jumpstep = 0.03
                     else:
                         self._countstop += 1
                         self._jumpstep *= 1.01
-                    
-                    #maxforce = self._forces.max()
-                    #indexs = np.around(self._forces / maxforce * 2, decimals=1) + np.ones((len(self.sites), 3))
-                    #forces = np.random.random((len(self.sites), 3)) ** indexs * self._jumpstep
+
                     if 3 < self._countstop < 5:
                         self._dealmax = True
                     
@@ -197,7 +196,6 @@ class Computing:
                             self._molecule.modify_dihedral_angle_A(*dihedral, delta=np.random.random() * 0.10 + 0.05)
                             self._newsites = np.array([list(map(lambda lenth: lenth, i[1:])) for i in self._molecule.get_atoms()])
                             self._newstart = True
-                            print("#改变二面角\r\n\r\n", self._countstop)
                     
                         self._countmin = 0
                         self._step = 0.08
