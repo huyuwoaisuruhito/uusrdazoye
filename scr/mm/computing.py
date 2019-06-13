@@ -1,7 +1,7 @@
 """
 分子力学能量优化计算
 
-算法：梯度下降法
+算法：加入随机因素的梯度下降法
 力场：amber03
 """
 
@@ -56,6 +56,7 @@ class Computing:
         self._countstop = 50
     
     def run(self):
+        """计算过程的主循环，在完成一定次数时生成消息、更新界面"""
         self.__printstart()
         self._parent.event_generate("<<UpadateLog>>")
         self._parent.event_generate("<<Upadate3DView>>")
@@ -79,10 +80,14 @@ class Computing:
                 for i, site in enumerate(self.sites):
                     atomsites[i][1:] = list(site)
                 
+                self._oldpotential = self._potential
+                if self._times == 1:
+                    continue
+                
                 self.__printstep()
                 self._parent.event_generate("<<UpadateLog>>")
                 self._parent.event_generate("<<Upadate3DView>>")
-                self._oldpotential = self._potential
+                
         
         self.sites = self._privsites
         self._potential = self._privpotential
@@ -90,6 +95,7 @@ class Computing:
         self._parent.event_generate("<<UpadateLog>>")
         self._parent.event_generate("<<Upadate3DView>>")
     
+    #生成消息
     def __printstart(self):
         if self._suspend:
             self.message = "---------------------------------------\n\n继续计算\n\n---------------------------------------"
@@ -107,6 +113,7 @@ class Computing:
         self.message = "\当前能量:\t{0:.4f} kJ/mol\n当前已计算 {1:d} 次\n\n---------------------------------------\n\n计算暂停\n\n---------------------------------------\n\n".format(self._potential, self._times)
     
     def __calc(self):
+        """计算的基本步骤"""
         #计算新坐标对应的势能
         t = time.time()
         def potential_bond(array1, array2, bonddata):
@@ -149,78 +156,53 @@ class Computing:
         newpotential += np.sum([e[0] for e in dihedral_potentials])
         newpotential += np.sum([e[0] for e in nonbond_potentials])
         
-        """newpotential = np.sum([potential_bond(self._newsites[b[0]], self._newsites[b[1]], self._bonddatas[b]) for b in self._bonds])
-        
-        newpotential += np.sum([potential_angle(self._newsites[ag[0]], self._newsites[ag[1]], self._newsites[ag[2]], self._angledatas[ag])
-                           for ag in self._angles])
-        newpotential += np.sum([potential_dihedral(*[self._newsites[i] for i in dh], self._dihedraldatas[dh])
-                           for dh in self._dihedrals])
-        newpotential += np.sum([potential_nonbond(self._newsites[nb[0]], self._newsites[nb[1]], self._nonbonddatas[nb])
-                            for nb in self._nonbonds])"""
-        
-        """print([(potential_bond(self._newsites[b[0]], self._newsites[b[1]], self._bonddatas[b]), b) for b in self._bonds])
-        print([(potential_angle(self._newsites[ag[0]], self._newsites[ag[1]], self._newsites[ag[2]], self._angledatas[ag]), ag)
-                           for ag in self._angles])
-        print([(potential_dihedral(*[self._newsites[i] for i in dh], self._dihedraldatas[dh]), dh)
-                           for dh in self._dihedrals])
-        print([(potential_nonbond(self._newsites[nb[0]], self._newsites[nb[1]], self._nonbonddatas[nb]), nb)
-                            for nb in self._nonbonds])
-        i = 1"""
-        
-        
-        if self._newstart:
+        if self._newstart: #更新基础属性
             self._potential = newpotential
             if self._times == 0:
                 self._privpotential = self._potential
                 self._oldpotential = self._potential
             self._newstart = False
         else:
-            print("potentials", self._potential, newpotential)
+            #基本能量比较以及坐标更新
             if newpotential < self._potential:
                 self._step *= 1.2
                 self._potential = newpotential
                 self.sites = self._newsites[:]
+                self._countmin = 0
             else:
                 self._step *= 0.2
                 self._countmin += 1
                 
-                if self._countmin > 4:
-                    if self._potential < self._privpotential:
-                        #if self._potential < self._privpotential:
+                #添加随机过程以尽量减少停留在不稳定极小值点的可能性
+                if self._countmin >= 3:
+                    if self._potential < self._privpotential + 1:
                         self._countstop = 0
-                        print("###########################")
-                        #if np.random.random() < np.exp((self._privpotential - self._potential) / 5):
                         self._privpotential = self._potential
                         self._privsites = self.sites
                         self._jumpstep = 0.03
                     else:
                         self._countstop += 1
                         self._jumpstep *= 1.01
-                    
-                    #maxforce = self._forces.max()
-                    #indexs = np.around(self._forces / maxforce * 2, decimals=1) + np.ones((len(self.sites), 3))
-                    #forces = np.random.random((len(self.sites), 3)) ** indexs * self._jumpstep
+
                     if 3 < self._countstop < 5:
                         self._dealmax = True
-                        
+                    
                     else:
                         forces = np.random.random((len(self.sites), 3)) * self._jumpstep
                         self._newsites = self.sites + forces
                     
                         if self._countstop > 6:
                             dihedral = self._dihedrals[np.random.randint(1, len(self._dihedrals))]
-                            dh_angle = self._molecule.get_dihedral_angle(*dihedral) + np.random.random() * 0.15
-                            self._molecule.modify_dihedral_angle_A(*dihedral, dh_angle)
+                            self._molecule.modify_dihedral_angle_A(*dihedral, delta=np.random.random() * 0.10 + 0.05)
                             self._newsites = np.array([list(map(lambda lenth: lenth, i[1:])) for i in self._molecule.get_atoms()])
                             self._newstart = True
-                            print("#改变二面角\r\n\r\n", self._countstop)
                     
                         self._countmin = 0
                         self._step = 0.08
                         self._times += 1
                         return
         
-        #计算力（势能偏导）以得到一组新坐标
+        #在正常情况下计算力（势能偏导）以得到一组新坐标
         t, dt = time.time(), time.time() - t
         print('Form:%f'%dt)
         def fbond(num1, array1, array2, bonddata):
@@ -308,7 +290,7 @@ class Computing:
                 return
             funcs[strange[1]](strange[0][1])
         
-        else:
+        else: #正常情况下对所以梯度加和以得到总能量的梯度
             t, dt = time.time(), time.time() - t
             print('F_Z:%f'%dt)
             for bond in self._bonds:
@@ -342,7 +324,7 @@ class Computing:
     
     
     def __getdatas(self):
-        
+        """遍历分子中的所有关系并将相关力场参数放入类属性以方便调用"""
         ori_bond_datas = [line.split() for line in open("datas\\bond_data.txt", "r")]
         ori_angle_datas = [line.split() for line in open("datas\\angle_data.txt", "r")]
         ori_dihedral_datas = [line.split() for line in open("datas\\dihedral_data.txt", "r")]
