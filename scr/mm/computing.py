@@ -177,18 +177,18 @@ class Computing:
         else:
             print("potentials", self._potential, newpotential)
             if newpotential < self._potential:
-                self._step *= 1.5
+                self._step *= 1.2
                 self._potential = newpotential
                 self.sites = self._newsites[:]
             else:
-                self._step *= 0.3
+                self._step *= 0.2
                 self._countmin += 1
                 
                 if self._countmin > 4:
                     if self._potential < self._privpotential:
                         #if self._potential < self._privpotential:
                         self._countstop = 0
-                        print("%*&^$&$%#$&*^(*^)*&*^%*^")
+                        print("###########################")
                         #if np.random.random() < np.exp((self._privpotential - self._potential) / 5):
                         self._privpotential = self._potential
                         self._privsites = self.sites
@@ -332,7 +332,7 @@ class Computing:
             print('d_NB:%f'%dt)
         
         maxforce = forces.max() #max([np.sqrt(force.dot(force)) for force in forces])
-        if maxforce >= 5 * 10**-6:
+        if maxforce >= 0.77:
             self._forces = forces * (self._step / maxforce)
         else:
             self._forces = forces
