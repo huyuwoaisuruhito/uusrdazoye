@@ -33,3 +33,18 @@
 ### 类名及接口
 
 暂无
+
+
+
+```python
+	if self._times == 0:  
+	    self._potential = newpotential  
+	else:  
+	    if newpotential < self._potential:  
+	        self._step *= 1.2  
+	        self._potential = newpotential  
+	        self.sites = self._newsites[:]  
+	    else:  
+	        self._step *= 0.6  
+```
+

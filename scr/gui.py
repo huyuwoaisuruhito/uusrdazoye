@@ -46,7 +46,7 @@ class Main_windows(tk.Tk):
         self.Computer = None
         self.Molecule = mol.Molecule()
         self.fio = fio.File_IO(self, self.Molecule)
-        #self.fio.input_gaussian_file('Gaussian_inp\\Arg.gjf')#testing
+        self.fio.input_gaussian_file('Gaussian_inp\\Arg.gjf')#testing
         self.Molecule.auto_set_O()
     
     def open_bond_length_windows(self):
@@ -71,6 +71,7 @@ class Main_windows(tk.Tk):
             self._baw.select(a)
         if '_daw' in self.__dict__:
             self._daw.select(a)
+        self.update()
 
     def clear_selection(self):
         if '_blw' in self.__dict__:
@@ -79,12 +80,14 @@ class Main_windows(tk.Tk):
             self._baw.clear_selection()
         if '_daw' in self.__dict__:
             self._daw.clear_selection()
+        self.update()
     
     def warning(self, t):
         messagebox.showinfo('警告', t)
     
     def __quit(self):
-        exit()
+        pass
+        #exit()
 
 
 class _Main_menu:
@@ -177,7 +180,7 @@ class _Main_menu:
         self.parent.open_3d_windows()
 
     def help_about(self):
-        messagebox.showinfo('关于', '作者：文亦质, 1800011702 \n 尚游皓，  \n verion 0.1')
+        messagebox.showinfo('关于', '作者：文亦质, 1800011702 \n 尚游皓，1800011714  \n verion 0.1')
 
     def help_operate(self):
         messagebox.showinfo()
