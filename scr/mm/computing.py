@@ -80,11 +80,11 @@ class Computing:
                 for i, site in enumerate(self.sites):
                     atomsites[i][1:] = list(site)
                 
-                self._oldpotential = self._potential
                 if self._times == 1:
                     continue
                 
                 self.__printstep()
+                self._oldpotential = self._potential
                 self._parent.event_generate("<<UpadateLog>>")
                 self._parent.event_generate("<<Upadate3DView>>")
                 

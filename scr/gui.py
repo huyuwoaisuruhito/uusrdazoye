@@ -87,7 +87,7 @@ class Main_windows(tk.Tk):
     
     def __quit(self):
         pass
-        #exit()
+        exit()
 
 
 class _Main_menu:
@@ -113,7 +113,7 @@ class _Main_menu:
         
         #编辑
         editmenu = tk.Menu(self.menubar, tearoff=0)
-        editmenu.add_command(label='打开3D界面', command=self.__call_3d)
+        #editmenu.add_command(label='打开3D界面', command=self.__call_3d)
         editmenu.add_command(label='自动调整原点', command=self.__auto_set_O)
         editmenu.add_separator()
         editmenu.add_command(label='键长', command=self.parent.open_bond_length_windows)
@@ -134,7 +134,7 @@ class _Main_menu:
         helpmenu.add_command(label='使用方法', command=self.help_operate)
         
         self.menubar.add_cascade(label='文件', menu=filemenu)
-        self.menubar.add_cascade(label='页面', menu=editmenu)
+        self.menubar.add_cascade(label='编辑', menu=editmenu)
         self.menubar.add_cascade(label='计算', menu=compmenu)
         self.menubar.add_cascade(label='帮助', menu=helpmenu)
 
@@ -180,10 +180,10 @@ class _Main_menu:
         self.parent.open_3d_windows()
 
     def help_about(self):
-        messagebox.showinfo('关于', '作者：文亦质, 1800011702 \n 尚游皓，1800011714  \n verion 0.1')
+        messagebox.showinfo('关于', '作者：文亦质, 1800011702 \n 尚游皓，1800011714  \n verion 0.5')
 
     def help_operate(self):
-        messagebox.showinfo()
+        messagebox.showinfo('使用方法', '请参考我们报告中的使用说明部分 \n 报告可从我们的github获取：\n https://github.com/huyuwoaisuruhito/uusrdazoye')
 
 
 
