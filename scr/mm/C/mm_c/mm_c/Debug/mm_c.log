@@ -1,0 +1,8 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  mm_c.cpp
+c:\users\arpu\documents\github\uusrdazoye\scr\mm\c\mm_c\mm_c\mm_c.cpp(17): warning C4477: “printf”: 格式字符串“%d”需要类型“int”的参数，但可变参数 3 拥有了类型“double”
+  正在生成代码...
+c:\users\arpu\documents\github\uusrdazoye\scr\mm\c\mm_c\mm_c\mm_c.cpp(29): warning C4172: 返回局部变量或临时变量的地址: ans
+    正在创建库 C:\Users\ARPU\Documents\GitHub\uusrdazoye\scr\mm\C\mm_c\Debug\mm_c.lib 和对象 C:\Users\ARPU\Documents\GitHub\uusrdazoye\scr\mm\C\mm_c\Debug\mm_c.exp
+  mm_c.vcxproj -> C:\Users\ARPU\Documents\GitHub\uusrdazoye\scr\mm\C\mm_c\Debug\mm_c.dll

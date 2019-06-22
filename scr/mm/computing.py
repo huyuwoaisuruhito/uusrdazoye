@@ -5,11 +5,11 @@
 力场：amber03
 """
 
-import time
+import time, sys, copy
 import numpy as np
 from scr.mm.bonding_information import Bondingmaps
 from scr.mm.atomtype import Atoms
-import copy
+import scr.mm.c_computing as ccp
 
 
 class DataTypeError(TypeError):
@@ -74,7 +74,7 @@ class Computing:
             if self._countstop > 19:
                 break
             
-            if self._times % 5 == 1:
+            if self._times % 10 == 1:
                 t, dt = time.time(), time.time() - t
                 atomsites = self._molecule.modify_atoms()
                 for i, site in enumerate(self.sites):
@@ -269,6 +269,13 @@ class Computing:
             forces[dh[3]] += fdihedral_s(dh[3], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
             forces[dh[1]] += fdihedral_c(dh[1], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
             forces[dh[2]] += fdihedral_c(dh[2], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
+
+        def c_act_fdihedral(dh):
+            nonlocal forces
+            forces[dh[0]] += ccp.fdihedral_s(dh[0], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
+            forces[dh[3]] += ccp.fdihedral_s(dh[3], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
+            forces[dh[1]] += ccp.fdihedral_c(dh[1], *[self.sites[at] for at in dh], self._dihedraldatas[dh])
+            forces[dh[2]] += ccp.fdihedral_c(dh[2], *[self.sites[at] for at in reversed(dh)], self._dihedraldatas[dh])
         
         def act_fnonbond(nonbond):
             nonlocal forces
@@ -291,27 +298,57 @@ class Computing:
             funcs[strange[1]](strange[0][1])
         
         else: #正常情况下对所以梯度加和以得到总能量的梯度
-            t, dt = time.time(), time.time() - t
-            print('F_Z:%f'%dt)
-            for bond in self._bonds:
-                act_fbond(bond)
-            t, dt = time.time(), time.time() - t
-            print('d_BL:%f'%dt)
-        
-            for angle in self._angles:
-                act_fangle(angle)
-            t, dt = time.time(), time.time() - t
-            print('d_BA:%f'%dt)
+            if sys.maxsize > 2**32:
 
-            for dh in self._dihedrals:
-                act_fdihedral(dh)
-            t, dt = time.time(), time.time() - t
-            print('d_DH:%f'%dt)
-        
-            for nonbond in self._nonbonds:
-                act_fnonbond(nonbond)
-            t, dt = time.time(), time.time() - t
-            print('d_NB:%f'%dt)
+                t, dt = time.time(), time.time() - t
+                print('F_Z:%f'%dt)
+                for bond in self._bonds:
+                    act_fbond(bond)
+                t, dt = time.time(), time.time() - t
+                print('d_BL:%f'%dt)
+            
+                for angle in self._angles:
+                    act_fangle(angle)
+                t, dt = time.time(), time.time() - t
+                print('d_BA:%f'%dt)
+
+                for dh in self._dihedrals:
+                    act_fdihedral(dh)
+                t, dt = time.time(), time.time() - t
+                print('d_DH:%f'%dt)
+            
+                for nonbond in self._nonbonds:
+                    act_fnonbond(nonbond)
+                t, dt = time.time(), time.time() - t
+                print('d_NB:%f'%dt)
+                print()
+
+            else:
+                ccp.init()
+
+                t, dt = time.time(), time.time() - t
+                print('F_Z:%f'%dt)
+                for bond in self._bonds:
+                    act_fbond(bond)
+                t, dt = time.time(), time.time() - t
+                print('d_BL:%f'%dt)
+            
+                for angle in self._angles:
+                    act_fangle(angle)
+                t, dt = time.time(), time.time() - t
+                print('d_BA:%f'%dt)
+
+                for dh in self._dihedrals:
+                    c_act_fdihedral(dh)
+                t, dt = time.time(), time.time() - t
+                print('d_DH:%f'%dt)
+            
+                for nonbond in self._nonbonds:
+                    act_fnonbond(nonbond)
+                t, dt = time.time(), time.time() - t
+                print('d_NB:%f'%dt)
+                print()
+
         
         maxforce = forces.max() #max([np.sqrt(force.dot(force)) for force in forces])
         if maxforce >= 0.77:
@@ -460,6 +497,7 @@ class Computing:
             else:
                 raise DataTypeError("can't find van Der Waals data for this atom: {0}".format(str(numa)))
     
+    @staticmethod
     def __gettypes(bondingmap):
         for num, at in enumerate(bondingmap.sites):
             if at[0] == "C":
